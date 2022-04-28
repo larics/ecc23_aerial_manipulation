@@ -72,25 +72,6 @@ def launch(context, *args, **kwargs):
                 'gripper':'mbzirc_oberon7_gripper'
                 }.items())
 
-    #spawn_usv_oberon = IncludeLaunchDescription(
-    #    PythonLaunchDescriptionSource([os.path.join(
-    #    get_package_share_directory('mbzirc_ign'), 'launch'),
-    #   '/spawn.launch.py']),
-    #    launch_arguments = {
-    #        'name': "usv",
-    #        'world': "simple_demo_manip",
-    #        'model': "usv",
-    #        'x': "0",
-    #        'y': "0",
-    #        'z': "1.5",
-    #        'R': "0",
-    #        'P': "0",
-    #        'Y': "0",
-    #        'arm': "mbzirc_oberon7_arm",
-    #        'gripper': "mbzirc_oberon7_gripper"
-    #        }.items())
-    #
-    #ros2 launch mbzirc_ign spawn.launch.py name:=usv world:=coast model:=usv x:=-1462 y:=-16.5 z:=0.3 R:=0 P:=0 Y:=0  arm:=mbzirc_oberon7_arm gripper:=mbzirc_oberon7_gripper
 
     ros2_ign_score_bridge = Node(
         package='ros_ign_bridge',
