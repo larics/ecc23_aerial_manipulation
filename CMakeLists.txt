@@ -7,9 +7,15 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(joy REQUIRED)
+find_package(mbzirc_ros REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+add_executable(uav_joy_ctl src/uav_joy_ctl.cpp)
+ament_target_dependencies(uav_joy_ctl rclcpp std_msgs geometry_msgs)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -25,6 +31,7 @@ endif()
 # Install launch directory
 install(DIRECTORY
   launch
+  uav_joy_ctl
   DESTINATION share/${PROJECT_NAME}/
 )
 
