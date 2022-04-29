@@ -52,7 +52,10 @@ def launch(context, *args, **kwargs):
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
-                'gripper':'mbzirc_suction_gripper'
+                'gripper':'mbzirc_suction_gripper', 
+                'slot0':'mbzirc_hd_camera', 
+                'type':'uav',
+                'flightTime':'1200'
                 }.items())
 
     spawn_large_aerial_manipulator = IncludeLaunchDescription(
@@ -69,8 +72,19 @@ def launch(context, *args, **kwargs):
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
-                'gripper':'mbzirc_oberon7_gripper'
+                'type':'uav',
+                'slot0':'mbzirc_vga_camera', 
+                'gripper':'mbzirc_oberon7_gripper', 
+                'flightTime':'1020'
                 }.items())
+    
+    # https://index.ros.org/p/joy/
+    joy_node = Node(
+        package='joy', 
+        executable="joy_node", 
+        output="screen", 
+        arguments={'device_name':'js0'}.items()
+    )
 
 
     ros2_ign_score_bridge = Node(
@@ -95,11 +109,13 @@ def launch(context, *args, **kwargs):
     )
 
 
+
     # Add spawning of UAVs
     return [ign_gazebo,
             ros2_ign_score_bridge, 
             ros2_ign_run_clock_bridge, 
             ros2_ign_phase_bridge, 
+            joy_node, 
             spawn_small_aerial_manipulator, 
             spawn_large_aerial_manipulator]
 
