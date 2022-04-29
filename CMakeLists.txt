@@ -31,7 +31,7 @@ endif()
 # Install launch directory
 install(DIRECTORY
   launch
-  uav_joy_ctl
+  src
   DESTINATION share/${PROJECT_NAME}/
 )
 
