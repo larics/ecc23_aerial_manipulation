@@ -14,7 +14,8 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 add_executable(uav_joy_ctl src/uav_joy_ctl.cpp)
-ament_target_dependencies(uav_joy_ctl rclcpp std_msgs geometry_msgs)
+ament_target_dependencies(uav_joy_ctl
+  rclcpp std_msgs geometry_msgs)
 
 
 if(BUILD_TESTING)
@@ -27,6 +28,11 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+install(TARGETS 
+  uav_joy_ctl 
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Install launch directory
 install(DIRECTORY

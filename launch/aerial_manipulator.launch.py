@@ -55,7 +55,7 @@ def launch(context, *args, **kwargs):
                 'gripper':'mbzirc_suction_gripper', 
                 'slot0':'mbzirc_hd_camera', 
                 'type':'uav',
-                'flightTime':'1200'
+                'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
                 }.items())
 
     spawn_large_aerial_manipulator = IncludeLaunchDescription(
@@ -78,14 +78,13 @@ def launch(context, *args, **kwargs):
                 'flightTime':'1020'
                 }.items())
     
-    # https://index.ros.org/p/joy/
+    # https://index.ros.org/p/joy/ --> joy node as joystick (Create subscriber that takes cmd_vel)
     joy_node = Node(
         package='joy', 
         executable="joy_node", 
         output="screen", 
         arguments={'device_name':'js0'}.items()
     )
-
 
     ros2_ign_score_bridge = Node(
         package='ros_ign_bridge',
@@ -108,14 +107,24 @@ def launch(context, *args, **kwargs):
         arguments=['/mbzirc/phase@std_msgs/msg/String@ignition.msgs.StringMsg'],
     )
 
+    # Fails when launching created node 
+    # raise SubstitutionFailure(
+    # launch.substitutions.substitution_failure.SubstitutionFailure: package 'mbzirc_aerial_manipulation' found at
+    # # '/home/developer/mbzirc_ws/install/mbzirc_aerial_manipulation', but libexec directory 
+    # #'/home/developer/mbzirc_ws/install/mbzirc_aerial_manipulation/lib/mbzirc_aerial_manipulation' does not exist
 
+    uav_ctl_node = Node(
+        package="mbzirc_aerial_manipulation", 
+        executable="uav_joy_ctl", 
+        output="screen"
+    )
 
     # Add spawning of UAVs
     return [ign_gazebo,
             ros2_ign_score_bridge, 
             ros2_ign_run_clock_bridge, 
             ros2_ign_phase_bridge, 
-            joy_node, 
+            joy_node,  
             spawn_small_aerial_manipulator, 
             spawn_large_aerial_manipulator]
 
