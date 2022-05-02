@@ -33,12 +33,17 @@ Official mbzirc [github repo](https://github.com/osrf/mbzirc)
 
 Official mbzirc [wiki](https://github.com/osrf/mbzirc/wiki)
 
-ROS2[wiki](https://docs.ros.org/en/foxy/index.html) 
+ROS2 [wiki](https://docs.ros.org/en/foxy/index.html)
 
+Book about [ROS2](https://osrf.github.io/ros2multirobotbook/)
+
+TurtleSim class as a good reference for [dev](https://github.com/ros/ros_tutorials/blob/galactic-devel/turtlesim/src/turtle.cpp) 
 
 ### TODO: 
 
-- [ ] Add launch for launch UAVs with manipulators 
+- [x] Add launch for launch UAVs with manipulators 
+- [x] Add teleop twist keyboard to enable basic UAV ctl
+- [x] Add open/close gripper service 
 - [ ] Add joystick control to enable flying with aerial manipulators
 - [ ] Add objects to the world to enable manipulation with those objects
 - [ ] Try to manipulate object 
