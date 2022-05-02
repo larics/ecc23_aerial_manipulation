@@ -11,11 +11,12 @@ find_package(joy REQUIRED)
 find_package(mbzirc_ros REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 add_executable(uav_joy_ctl src/uav_joy_ctl.cpp)
 ament_target_dependencies(uav_joy_ctl
-  rclcpp std_msgs geometry_msgs)
+  rclcpp std_msgs geometry_msgs std_srvs)
 
 
 if(BUILD_TESTING)

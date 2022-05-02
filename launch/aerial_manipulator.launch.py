@@ -107,12 +107,6 @@ def launch(context, *args, **kwargs):
         arguments=['/mbzirc/phase@std_msgs/msg/String@ignition.msgs.StringMsg'],
     )
 
-    # Fails when launching created node 
-    # raise SubstitutionFailure(
-    # launch.substitutions.substitution_failure.SubstitutionFailure: package 'mbzirc_aerial_manipulation' found at
-    # # '/home/developer/mbzirc_ws/install/mbzirc_aerial_manipulation', but libexec directory 
-    # #'/home/developer/mbzirc_ws/install/mbzirc_aerial_manipulation/lib/mbzirc_aerial_manipulation' does not exist
-
     uav_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_joy_ctl", 
