@@ -35,7 +35,7 @@ def launch(context, *args, **kwargs):
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('ros_ign_gazebo'), 'launch'),
         '/ign_gazebo.launch.py']),
-        launch_arguments = {'ign_args': "-v 4 -r empty_platform.sdf"}.items())
+        launch_arguments = {'ign_args': "-v 4 -r empty_platform.sdf"}.items()) 
 
     #spawn_small_aerial_manipulator
     spawn_small_aerial_manipulator = IncludeLaunchDescription(

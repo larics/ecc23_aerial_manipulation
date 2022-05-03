@@ -13,10 +13,12 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(uav_joy_ctl src/uav_joy_ctl.cpp)
+# Add target dependencies for correct linking
 ament_target_dependencies(uav_joy_ctl
-  rclcpp std_msgs geometry_msgs std_srvs)
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs)
 
 
 if(BUILD_TESTING)
