@@ -45,14 +45,14 @@ class UavJoyCtl : public rclcpp::Node
             teleopSubscriber_               = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, 
                                                                                      std::bind(&UavJoyCtl::teleop_callback, this, _1)); 
             // Services
-            openGripperService_             = this->create_service<std_srvs::srv::Trigger>("/am_L/open_gripper",
+            openGripperService_             = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper",
                                                                                 std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
-            closeGripperService_            = this->create_service<std_srvs::srv::Trigger>("/am_L/close_gripper",  
+            closeGripperService_            = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  
                                                                                 std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
 
             // Clients 
-            openGripperClient_ = this->create_client<std_srvs::srv::Trigger>("/am_L/open_gripper"); 
-            closeGripperClient_ = this->create_client<std_srvs::srv::Trigger>("/am_L/close_gripper"); 
+            openGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
+            closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper"); 
             
             //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
             
@@ -140,9 +140,11 @@ class UavJoyCtl : public rclcpp::Node
                 // Call open gripper 
                 if (msg->buttons.at(5) == 1){
                     
+                    //https://answers.ros.org/question/343279/ros2-how-to-implement-a-sync-service-client-in-a-node/
+                    // https://answers.ros.org/question/340389/client-doesnt-return-when-declared-inside-c-class-in-ros-2/
                     RCLCPP_INFO_STREAM(this->get_logger(), "Opening Gripper!");
-                    std_srvs::srv::Trigger::Request::SharedPtr req_; 
-                    auto result = openGripperClient_->async_send_request(req_); 
+                    std_srvs::srv::Empty::Request::SharedPtr req_;   
+                    openGripperClient_->async_send_request(req_); 
 
                 }
 
@@ -150,8 +152,9 @@ class UavJoyCtl : public rclcpp::Node
                 if (msg->buttons.at(7) == 1){
 
                     RCLCPP_INFO_STREAM(this->get_logger(), "Closing Gripper!");
-                    std_srvs::srv::Trigger::Request::SharedPtr req_; 
-                    auto result = closeGripperClient_->async_send_request(req_); 
+                    std_srvs::srv::Empty::Request::SharedPtr req_;                    
+
+                    closeGripperClient_->async_send_request(req_); 
 
                 }
 
@@ -160,8 +163,8 @@ class UavJoyCtl : public rclcpp::Node
 
         }
 
-        bool close_gripper(const std_srvs::srv::Trigger::Request::SharedPtr req, 
-                           std_srvs::srv::Trigger::Response::SharedPtr res){
+        bool close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
+                           std_srvs::srv::Empty::Response::SharedPtr res){
 
             auto finger_pos_msg = std_msgs::msg::Float64(); 
             finger_pos_msg.data = 0.0; 
@@ -175,8 +178,8 @@ class UavJoyCtl : public rclcpp::Node
 
         }
 
-        bool open_gripper(const std_srvs::srv::Trigger::Request::SharedPtr req, 
-                          std_srvs::srv::Trigger::Response::SharedPtr res){
+        bool open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
+                          std_srvs::srv::Empty::Response::SharedPtr res){
 
             auto finger_pos_msg = std_msgs::msg::Float64(); 
             finger_pos_msg.data = 0.5; 
@@ -206,14 +209,14 @@ class UavJoyCtl : public rclcpp::Node
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr  teleopSubscriber_; 
 
         // Services 
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr          openGripperService_; 
-        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr          closeGripperService_;
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr          openGripperService_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr          closeGripperService_;
 
         // Clients 
-        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr           openGripperClient_; 
-        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr           closeGripperClient_;  
+        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr           openGripperClient_; 
+        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr           closeGripperClient_;  
 
-        // * Hello World cound
+        // * Hello World count
         size_t count_; 
 };
 
@@ -221,7 +224,15 @@ int main(int argc, char * argv [])
 {
 
     rclcpp::init(argc, argv); 
-    rclcpp::spin(std::make_shared<UavJoyCtl>()); 
+
+    // Create node 
+    rclcpp::Node::SharedPtr node = std::make_shared<UavJoyCtl>(); 
+    
+    // Add multithreaded executor
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node); 
+    executor.spin();
+
     rclcpp::shutdown(); 
     return 0; 
 
