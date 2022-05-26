@@ -55,7 +55,7 @@ def launch(context, *args, **kwargs):
                 'gripper':'mbzirc_suction_gripper', 
                 'slot0':'mbzirc_hd_camera', 
                 'type':'uav2', 
-                'flightTime': '5', 
+                'flightTime': '6000', 
                 #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
                 }.items())
 
@@ -76,7 +76,7 @@ def launch(context, *args, **kwargs):
                 'type':'uav1',
                 'slot0':'mbzirc_vga_camera', 
                 'gripper':'mbzirc_oberon7_gripper', 
-                'flightTime' : '60' #'flightTime':'1020'
+                'flightTime' : '6000' #'flightTime':'1020'
                 }.items())
     
     # https://index.ros.org/p/joy/ --> joy node as joystick (Create subscriber that takes cmd_vel)
@@ -119,6 +119,9 @@ def launch(context, *args, **kwargs):
             joy_node,  
             spawn_small_aerial_manipulator, 
             spawn_large_aerial_manipulator,
+            #ros2_ign_score_bridge, 
+            #ros2_ign_run_clock_bridge, 
+            #ros2_ign_phase_bridge, 
             uav_ctl_node]
 
 def generate_launch_description():

@@ -53,7 +53,8 @@ class UavJoyCtl : public rclcpp::Node
 
             // Clients 
             openGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
-            closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");             
+            closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
+             
             //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
             
             
@@ -72,8 +73,7 @@ class UavJoyCtl : public rclcpp::Node
             message.data = "Hello, world! " + std::to_string(count_++); 
             RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
 
-        }
-        
+        }        
 
         void teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
         {
@@ -93,7 +93,8 @@ class UavJoyCtl : public rclcpp::Node
 
         void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
         {   
-
+            
+            float scale_factor; 
             bool switch_ctl = false; 
 
             // If L1 pressed, ctl small UAV
@@ -110,14 +111,27 @@ class UavJoyCtl : public rclcpp::Node
             roll = axes_.at(2); pitch = axes_.at(3); 
             yaw = axes_.at(4); height = axes_.at(5);
 
+            // Change mode of control at R1
+            if (msg->buttons.at(5) == 1){
+                scale_factor = 1.0;
+                RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE]: Drive"); 
+
+            }else{
+                scale_factor = 0.1; 
+                RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE]: Approach!"); 
+
+            }
+
+
             // TODO: Make sure that velocity is only thing we can command to UAVs
             auto teleop_msg = geometry_msgs::msg::Twist(); 
-            teleop_msg.linear.x         = pitch * 0.2; 
-            teleop_msg.linear.y         = roll * 0.2;  
-            teleop_msg.linear.z         = height * 0.2; 
-            teleop_msg.angular.z        = yaw * 0.2;
+            teleop_msg.linear.x         = pitch * scale_factor; 
+            teleop_msg.linear.y         = roll * scale_factor;  
+            teleop_msg.linear.z         = height * scale_factor * 0.2; 
+            teleop_msg.angular.z        = yaw * scale_factor* 0.4;
 
             if (switch_ctl)
+
             {
                 std_msgs::msg::Bool suction_msg; 
 
@@ -131,17 +145,17 @@ class UavJoyCtl : public rclcpp::Node
                     suction_msg.data = false; 
                 }
 
-                RCLCPP_INFO_STREAM(this->get_logger(), "Controlling small UAV!"); 
+                RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Controlling small UAV!"); 
                 amSCmdVelPublisher_->publish(teleop_msg); 
                 amSGripperCmdSuctionPublisher_->publish(suction_msg); 
 
             }else{
 
-                RCLCPP_INFO_STREAM(this->get_logger(), "Controlling large UAV!"); 
+                RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Controlling large UAV!"); 
                 amLCmdVelPublisher_->publish(teleop_msg); 
 
                 // Call open gripper w
-                if (msg->buttons.at(5) == 1){
+                if (msg->buttons.at(0) == 1){
                     
                     //https://answers.ros.org/question/343279/ros2-how-to-implement-a-sync-service-client-in-a-node/
                     // https://answers.ros.org/question/340389/client-doesnt-return-when-declared-inside-c-class-in-ros-2/
@@ -152,12 +166,10 @@ class UavJoyCtl : public rclcpp::Node
                 }
 
                 // Call close gripper
-                if (msg->buttons.at(7) == 1){
+                if (msg->buttons.at(2) == 1){
 
                     RCLCPP_INFO_STREAM(this->get_logger(), "Closing Gripper!");
-                    std_srvs::srv::Empty::Request::SharedPtr req_; 
-                                       
-
+                    auto req_ = std::make_shared<std_srvs::srv::Empty::Request>(); 
                     closeGripperClient_->async_send_request(req_); 
 
                 }
@@ -222,6 +234,7 @@ class UavJoyCtl : public rclcpp::Node
 
         // * Hello World count
         size_t count_; 
+        int operation_mode; 
 };
 
 int main(int argc, char * argv [])
