@@ -39,14 +39,24 @@ Book about [ROS2](https://osrf.github.io/ros2multirobotbook/)
 
 TurtleSim class as a good reference for [dev](https://github.com/ros/ros_tutorials/blob/galactic-devel/turtlesim/src/turtle.cpp) 
 
+### Battery stuff: 
+
+Use parameter `flightTime` to increase battery life!
+
+### Plugins that are used and that cause trouble 
+
+Plugins that causes trouble during some development is game development plugin. 
+
 ### TODO: 
 
 - [x] Add launch for launch UAVs with manipulators 
 - [x] Add teleop twist keyboard to enable basic UAV ctl
 - [x] Add open/close gripper service 
-- [ ] Add joystick control to enable flying with aerial manipulators
-- [ ] Add objects to the world to enable manipulation with those objects
-- [ ] Try to manipulate object 
+- [x] Add joystick control to enable flying with aerial manipulators
+- [x] Add objects to the world to enable manipulation with those objects
+- [x] Try to manipulate object 
 - [ ] Add ROS1 bridge 
-- [ ] Check how to update battery life 
-
+- [x] Check how to update battery life 
+- [ ] Check camera output
+- [ ] Check detach topic that stems from `<plugin filename="ignition-gazebo-detachable-joint-system" name="ignition::gazebo::systems::DetachableJoint">`
+- [ ] Pose estimation/Sensor positioning 
