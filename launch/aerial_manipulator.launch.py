@@ -35,7 +35,7 @@ def launch(context, *args, **kwargs):
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('ros_ign_gazebo'), 'launch'),
         '/ign_gazebo.launch.py']),
-        launch_arguments = {'ign_args': "-v 4 -r empty_platform.sdf"}.items()) 
+        launch_arguments = {'ign_args': "-v 50 -r empty_platform.sdf"}.items()) 
 
     #spawn_small_aerial_manipulator
     spawn_small_aerial_manipulator = IncludeLaunchDescription(
@@ -54,8 +54,9 @@ def launch(context, *args, **kwargs):
                 'Y': '0', 
                 'gripper':'mbzirc_suction_gripper', 
                 'slot0':'mbzirc_hd_camera', 
-                'type':'uav',
-                'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
+                'type':'uav2', 
+                'flightTime': '5', 
+                #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
                 }.items())
 
     spawn_large_aerial_manipulator = IncludeLaunchDescription(
@@ -72,10 +73,10 @@ def launch(context, *args, **kwargs):
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
-                'type':'uav',
+                'type':'uav1',
                 'slot0':'mbzirc_vga_camera', 
                 'gripper':'mbzirc_oberon7_gripper', 
-                'flightTime':'1020'
+                'flightTime' : '60' #'flightTime':'1020'
                 }.items())
     
     # https://index.ros.org/p/joy/ --> joy node as joystick (Create subscriber that takes cmd_vel)
@@ -115,12 +116,10 @@ def launch(context, *args, **kwargs):
 
     # Add spawning of UAVs
     return [ign_gazebo,
-            ros2_ign_score_bridge, 
-            ros2_ign_run_clock_bridge, 
-            ros2_ign_phase_bridge, 
             joy_node,  
             spawn_small_aerial_manipulator, 
-            spawn_large_aerial_manipulator]
+            spawn_large_aerial_manipulator,
+            uav_ctl_node]
 
 def generate_launch_description():
     return LaunchDescription([

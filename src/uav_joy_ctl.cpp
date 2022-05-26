@@ -17,6 +17,7 @@
 #include "std_srvs/srv/empty.hpp"
 
 
+
 using namespace std::chrono_literals; 
 using std::placeholders::_1;
 using std::placeholders::_2; 
@@ -52,25 +53,27 @@ class UavJoyCtl : public rclcpp::Node
 
             // Clients 
             openGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
-            closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper"); 
-            
+            closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");             
             //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
             
-            /*timer_ = this->create_wall_timer(
-            500ms, std::bind(&UavJoyCtl::timer_callback, this)); */
+            
+            //constexpr static double SYSTEM_DT = 0.2;
+            //timer_ = this->create_wall_timer(std::chrono::duration<double>(SYSTEM_DT), std::bind(&UavJoyCtl::timer_callback, this)); 
         }
 
      
-    private: 
-        /*
+    private:
+
+
+        // Timer callback executes every 1.0/0.2 (5s)
         void timer_callback()
         {
             auto message = std_msgs::msg::String(); 
             message.data = "Hello, world! " + std::to_string(count_++); 
             RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
-            testPublisher_->publish(message); 
+
         }
-        */
+        
 
         void teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
         {
@@ -109,10 +112,10 @@ class UavJoyCtl : public rclcpp::Node
 
             // TODO: Make sure that velocity is only thing we can command to UAVs
             auto teleop_msg = geometry_msgs::msg::Twist(); 
-            teleop_msg.linear.x         = pitch * 15; 
-            teleop_msg.linear.y         = roll * 15;  
-            teleop_msg.linear.z         = height * 0.5; 
-            teleop_msg.angular.z        = yaw * 0.5;
+            teleop_msg.linear.x         = pitch * 0.2; 
+            teleop_msg.linear.y         = roll * 0.2;  
+            teleop_msg.linear.z         = height * 0.2; 
+            teleop_msg.angular.z        = yaw * 0.2;
 
             if (switch_ctl)
             {
@@ -137,13 +140,13 @@ class UavJoyCtl : public rclcpp::Node
                 RCLCPP_INFO_STREAM(this->get_logger(), "Controlling large UAV!"); 
                 amLCmdVelPublisher_->publish(teleop_msg); 
 
-                // Call open gripper 
+                // Call open gripper w
                 if (msg->buttons.at(5) == 1){
                     
                     //https://answers.ros.org/question/343279/ros2-how-to-implement-a-sync-service-client-in-a-node/
                     // https://answers.ros.org/question/340389/client-doesnt-return-when-declared-inside-c-class-in-ros-2/
                     RCLCPP_INFO_STREAM(this->get_logger(), "Opening Gripper!");
-                    std_srvs::srv::Empty::Request::SharedPtr req_;   
+                    auto req_ = std::make_shared<std_srvs::srv::Empty::Request>();    
                     openGripperClient_->async_send_request(req_); 
 
                 }
@@ -152,7 +155,8 @@ class UavJoyCtl : public rclcpp::Node
                 if (msg->buttons.at(7) == 1){
 
                     RCLCPP_INFO_STREAM(this->get_logger(), "Closing Gripper!");
-                    std_srvs::srv::Empty::Request::SharedPtr req_;                    
+                    std_srvs::srv::Empty::Request::SharedPtr req_; 
+                                       
 
                     closeGripperClient_->async_send_request(req_); 
 
@@ -199,8 +203,8 @@ class UavJoyCtl : public rclcpp::Node
         // Publishers
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr         testPublisher_; 
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr     amLCmdVelPublisher_; 
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr     amSCmdVelPublisher_; 
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr        amLGripperCmdPosLeftPublisher_; 
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr     amSCmdVelPublisher_; 
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr        amLGripperCmdPosRightPublisher_; 
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr           amSGripperCmdSuctionPublisher_; 
 
