@@ -95,6 +95,7 @@ class UavJoyCtl : public rclcpp::Node
         {   
             
             float scale_factor; 
+            float scale_factor_height; 
             bool switch_ctl = false; 
 
             // If L1 pressed, ctl small UAV
@@ -122,13 +123,18 @@ class UavJoyCtl : public rclcpp::Node
 
             }
 
+            if (msg->buttons[3] == 1){
+                scale_factor_height = 3.0; 
+                RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODEŊ: Lifting!"); 
+            }
+
 
             // TODO: Make sure that velocity is only thing we can command to UAVs
             auto teleop_msg = geometry_msgs::msg::Twist(); 
             teleop_msg.linear.x         = pitch * scale_factor; 
             teleop_msg.linear.y         = roll * scale_factor;  
             teleop_msg.linear.z         = height * scale_factor * 0.2; 
-            teleop_msg.angular.z        = yaw * scale_factor* 0.4;
+            teleop_msg.angular.z        = yaw * scale_factor_height * 0.4;
 
             if (switch_ctl)
 
