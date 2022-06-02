@@ -5,6 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(joy REQUIRED)
@@ -16,7 +17,13 @@ find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-add_executable(uav_joy_ctl src/uav_joy_ctl.cpp)
+add_executable(uav_joy_ctl src/uav_joy_ctl_node.cpp src/uav_joy_ctl.cpp)
+
+target_include_directories(uav_joy_ctl 
+  PRIVATE 
+  include/
+)
+
 # Add target dependencies for correct linking
 ament_target_dependencies(uav_joy_ctl
   rclcpp std_msgs geometry_msgs std_srvs sensor_msgs)

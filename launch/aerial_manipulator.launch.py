@@ -54,6 +54,7 @@ def launch(context, *args, **kwargs):
                 'Y': '0', 
                 'gripper':'mbzirc_suction_gripper', 
                 'slot0':'mbzirc_hd_camera', 
+                #'slot0' : 'mbzirc_rgbd_camera',
                 'type':'uav2', 
                 'flightTime': '6000', 
                 #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
@@ -74,7 +75,8 @@ def launch(context, *args, **kwargs):
                 'P': '0', 
                 'Y': '0', 
                 'type':'uav1',
-                'slot0':'mbzirc_vga_camera', 
+                #'slot0':'mbzirc_vga_camera', 
+                'slot0': 'mbzirc_rgbd_camera', 
                 'gripper':'mbzirc_oberon7_gripper', 
                 'flightTime' : '6000' #'flightTime':'1020'
                 }.items())
