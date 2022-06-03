@@ -47,6 +47,15 @@ Use parameter `flightTime` to increase battery life!
 
 Plugins that causes trouble during some development is game development plugin. 
 
+### Temp: 
+
+PCL build: https://pcl.readthedocs.io/projects/tutorials/en/latest/compiling_pcl_posix.html
+VTK build: https://github.com/Kitware/VTK/blob/master/Documentation/dev/build.md#linux-getting-started
+
+### Simulation models
+
+Simulation models that can be use can be found [here](https://app.gazebosim.org/OpenRobotics/fuel/collections/mbzirc). 
+
 ### TODO: 
 
 - [x] Add launch for launch UAVs with manipulators 
@@ -57,6 +66,6 @@ Plugins that causes trouble during some development is game development plugin.
 - [x] Try to manipulate object 
 - [ ] Add ROS1 bridge 
 - [x] Check how to update battery life 
-- [ ] Check camera output
+- [x] Check camera RGBD output
 - [ ] Check detach topic that stems from `<plugin filename="ignition-gazebo-detachable-joint-system" name="ignition::gazebo::systems::DetachableJoint">`
-- [ ] Pose estimation/Sensor positioning 
+- [x] Pose estimation/Sensor positioning (maybe logical to be on bottom of UAV?) - test different scenarios 
