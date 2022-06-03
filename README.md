@@ -49,7 +49,8 @@ Plugins that causes trouble during some development is game development plugin.
 
 ### Temp: 
 
-PCL build: https://pcl.readthedocs.io/projects/tutorials/en/latest/compiling_pcl_posix.html
+PCL build: https://pcl.readthedocs.io/projects/tutorials/en/latest/compiling_pcl_posix.html  
+
 VTK build: https://github.com/Kitware/VTK/blob/master/Documentation/dev/build.md#linux-getting-started
 
 ### Simulation models
