@@ -23,13 +23,14 @@ void UavJoyCtl::init()
     // Subscribers
     joySub_                   = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavJoyCtl::joy_callback, this, _1)); 
     teleopSub_                = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, std::bind(&UavJoyCtl::teleop_callback, this, _1)); 
+
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
 
     // Clients 
-    openGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
-    closeGripperClient_ = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
+    openGripperClient_        = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
+    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
              
     //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
             
@@ -80,7 +81,7 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
     // Populate teleop_twist msg
     float pitch; float height;  float roll; float yaw;             
     roll = axes_.at(2); pitch = axes_.at(3); 
-    yaw = axes_.at(4); height = axes_.at(5);
+    yaw  = axes_.at(4); height = axes_.at(5);
 
     // Change mode of control at R1
     if (msg->buttons.at(5) == 1){
@@ -119,13 +120,13 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
             suction_msg.data = false; 
         }
 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Controlling small UAV!"); 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[CTL INFO] Controlling small UAV!"); 
         amSCmdVelPub_->publish(teleop_msg); 
         amSGripperCmdSuctionPub_->publish(suction_msg); 
 
     }else{
 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "Controlling large UAV!"); 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[CTL INFO] Controlling large UAV!"); 
         amLCmdVelPub_->publish(teleop_msg); 
         // Call open gripper w
         if (msg->buttons.at(0) == 1){                    
@@ -152,19 +153,19 @@ bool UavJoyCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req
                               std_srvs::srv::Empty::Response::SharedPtr res)
 {
 
-            auto finger_pos_msg = std_msgs::msg::Float64(); 
-            finger_pos_msg.data = 0.0; 
+    auto finger_pos_msg = std_msgs::msg::Float64(); 
+    finger_pos_msg.data = 0.0; 
 
-            amLGripperCmdPosLeftPub_->publish(finger_pos_msg); 
-            amLGripperCmdPosRightPub_->publish(finger_pos_msg); 
+    amLGripperCmdPosLeftPub_->publish(finger_pos_msg); 
+    amLGripperCmdPosRightPub_->publish(finger_pos_msg); 
 
-            RCLCPP_INFO_STREAM(this->get_logger(), "Closing gripper!");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Closing gripper!");
 
-            return true; 
+    return true; 
 }
 
 bool UavJoyCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
-                          std_srvs::srv::Empty::Response::SharedPtr res)
+                            std_srvs::srv::Empty::Response::SharedPtr res)
 {
 
     auto finger_pos_msg = std_msgs::msg::Float64(); 
