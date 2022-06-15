@@ -57,6 +57,10 @@ VTK build: https://github.com/Kitware/VTK/blob/master/Documentation/dev/build.md
 
 Simulation models that can be use can be found [here](https://app.gazebosim.org/OpenRobotics/fuel/collections/mbzirc). 
 
+### Gazebo + Docker + SSH 
+
+How to run `ign_gazebo` GUI with docker and OpenGL support can be found [here](https://github.com/gbalke/docker-ros2-opengl)
+
 ### TODO: 
 
 - [x] Add launch for launch UAVs with manipulators 
