@@ -22,4 +22,5 @@ todo:
  - [ ] Think of states for lifting object
  - [ ] Think of collaborative object lifting 
 
-
+conclusions: 
+ - [x] RGBD camera kill sim factor (99% - 20%)

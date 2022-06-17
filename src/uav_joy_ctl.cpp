@@ -85,11 +85,11 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 
     // Change mode of control at R1
     if (msg->buttons.at(5) == 1){
-        scale_factor = 1.0;
+        scale_factor = 1.1;
         RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE]: Drive"); 
 
     }else{
-        scale_factor = 0.1; 
+        scale_factor = 0.2; 
         RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE]: Approach!"); 
 
     }

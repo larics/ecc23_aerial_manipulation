@@ -76,7 +76,7 @@ def launch(context, *args, **kwargs):
                 'Y': '0', 
                 'type':'uav1',
                 #'slot0':'mbzirc_vga_camera', 
-                'slot3': 'mbzirc_rgbd_camera', 
+                #'slot3': 'mbzirc_rgbd_camera', 
                 'gripper':'mbzirc_oberon7_gripper', 
                 'flightTime' : '6000' #'flightTime':'1020'
                 }.items())
@@ -119,7 +119,7 @@ def launch(context, *args, **kwargs):
     # Add spawning of UAVs
     return [ign_gazebo,
             joy_node,  
-            spawn_small_aerial_manipulator, 
+            #spawn_small_aerial_manipulator, 
             spawn_large_aerial_manipulator,
             #ros2_ign_score_bridge, 
             #ros2_ign_run_clock_bridge, 
