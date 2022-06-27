@@ -39,6 +39,10 @@ Book about [ROS2](https://osrf.github.io/ros2multirobotbook/)
 
 TurtleSim class as a good reference for [dev](https://github.com/ros/ros_tutorials/blob/galactic-devel/turtlesim/src/turtle.cpp) 
 
+### How to control UAV: 
+
+[Gamepad img](./include/gamepad.png)
+
 ### Battery stuff: 
 
 Use parameter `flightTime` to increase battery life!
@@ -60,6 +64,7 @@ Simulation models that can be use can be found [here](https://app.gazebosim.org/
 ### Gazebo + Docker + SSH 
 
 How to run `ign_gazebo` GUI with docker and OpenGL support can be found [here](https://github.com/gbalke/docker-ros2-opengl)
+
 
 ### TODO: 
 
