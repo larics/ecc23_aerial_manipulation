@@ -86,17 +86,17 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
     // Change mode of control at R1
     if (msg->buttons.at(5) == 1){
         scale_factor = 1.1;
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE]: Drive"); 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Drive"); 
 
     }else{
         scale_factor = 0.2; 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE]: Approach!"); 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE_L]: Approach!"); 
 
     }
 
     if (msg->buttons[3] == 1){
         scale_factor_height = 5.0; 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODEŊ: Lifting!"); 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Lifting!"); 
     }else{
         scale_factor_height = scale_factor; 
     }  
@@ -114,19 +114,18 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
         std_msgs::msg::Bool suction_msg; 
 
         // Call start suction 
-        if (msg->buttons.at(5) == 1){
-            suction_msg.data = true;                   
+        if (msg->buttons.at(2) == 1){
+            suction_msg.data = true;
+            RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_S] Suction on!");                    
         }else{
             suction_msg.data = false; 
         }
 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[CTL INFO] Controlling small UAV!"); 
         amSCmdVelPub_->publish(teleop_msg); 
         amSGripperCmdSuctionPub_->publish(suction_msg); 
 
     }else{
 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[CTL INFO] Controlling large UAV!"); 
         amLCmdVelPub_->publish(teleop_msg); 
         // Call open gripper w
         if (msg->buttons.at(0) == 1){                    
@@ -179,6 +178,9 @@ bool UavJoyCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
     return true;  
         
 }
+
+
+
 
 
 

@@ -119,7 +119,7 @@ def launch(context, *args, **kwargs):
     # Add spawning of UAVs
     return [ign_gazebo,
             joy_node,  
-            #spawn_small_aerial_manipulator, 
+            spawn_small_aerial_manipulator, 
             spawn_large_aerial_manipulator,
             #ros2_ign_score_bridge, 
             #ros2_ign_run_clock_bridge, 
