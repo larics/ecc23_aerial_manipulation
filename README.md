@@ -65,17 +65,33 @@ Simulation models that can be use can be found [here](https://app.gazebosim.org/
 
 How to run `ign_gazebo` GUI with docker and OpenGL support can be found [here](https://github.com/gbalke/docker-ros2-opengl)
 
+### Resources
+
+[ign-tutorials](https://github.com/Blast545/ign_tutorials)
+
+### Current status
+
+Managed to lift blue case with big UAV. However, it's doubtful that controllers don't work as planned. 
+
+Short term plan is to enable odometry to be able to test controllers during tuning. 
+After we make sure that controllers are tuned correctly, try to lift objects, and 
+check with other teams how is the status of positional control. 
+
+
+Parts of the system that need to be addressed. 
+- control 
+- state machine
+- perception 
+- relative localization
+- UAV cooperation 
+
 
 ### TODO: 
 
-- [x] Add launch for launch UAVs with manipulators 
-- [x] Add teleop twist keyboard to enable basic UAV ctl
-- [x] Add open/close gripper service 
-- [x] Add joystick control to enable flying with aerial manipulators
-- [x] Add objects to the world to enable manipulation with those objects
-- [x] Try to manipulate object 
-- [ ] Add ROS1 bridge 
-- [x] Check how to update battery life 
-- [x] Check camera RGBD output
-- [ ] Check detach topic that stems from `<plugin filename="ignition-gazebo-detachable-joint-system" name="ignition::gazebo::systems::DetachableJoint">`
-- [x] Pose estimation/Sensor positioning (maybe logical to be on bottom of UAV?) - test different scenarios 
+- [ ] Add method for joystick control (reference generation) 
+- [ ] Add namespaceing to enable easier UAV ctl 
+- [ ] Check suction mechanism 
+- [ ] Tune controllers 
+- [ ] Add positional control 
+- [ ] Enable development on server 
+

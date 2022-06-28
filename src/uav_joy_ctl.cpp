@@ -95,7 +95,7 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
     }
 
     if (msg->buttons[3] == 1){
-        scale_factor_height = 5.0; 
+        scale_factor_height = 10.0; 
         RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Lifting!"); 
     }else{
         scale_factor_height = scale_factor; 
