@@ -50,7 +50,6 @@ void UavJoyCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) 
 {
     RCLCPP_INFO_STREAM(this->get_logger(), "I heard: " << msg->linear.x); //%s'", msg->data.c_str()); 
 
-
     //msg_->linear.z = msg->linear.x; // / 5.0; 
     auto teleop_msg = geometry_msgs::msg::Twist(); 
     teleop_msg.linear.z = msg->linear.x; 
@@ -80,8 +79,8 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 
     // Populate teleop_twist msg
     float pitch; float height;  float roll; float yaw;             
-    roll = axes_.at(2); pitch = axes_.at(3); 
-    yaw  = axes_.at(4); height = axes_.at(5);
+    roll = axes_.at(3); pitch = axes_.at(4); 
+    yaw  = axes_.at(0); height = axes_.at(1);
 
     // Change mode of control at R1
     if (msg->buttons.at(5) == 1){
@@ -102,11 +101,11 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
     }  
 
     // TODO: Make sure that velocity is only thing we can command to UAVs
-    auto teleop_msg = geometry_msgs::msg::Twist(); 
-    teleop_msg.linear.x         = pitch * scale_factor; 
-    teleop_msg.linear.y         = roll * scale_factor;  
-    teleop_msg.linear.z         = height * scale_factor_height * 0.2; 
-    teleop_msg.angular.z        = yaw * scale_factor * 0.4;
+    auto teleop_msg             = geometry_msgs::msg::Twist(); 
+    teleop_msg.linear.x         = pitch     * scale_factor; 
+    teleop_msg.linear.y         = roll      * scale_factor;  
+    teleop_msg.linear.z         = height    * scale_factor_height * 0.2; 
+    teleop_msg.angular.z        = yaw       * scale_factor * 0.4;
 
     if (switch_ctl)
 
@@ -125,7 +124,7 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
         amSGripperCmdSuctionPub_->publish(suction_msg); 
 
     }else{
-
+        
         amLCmdVelPub_->publish(teleop_msg); 
         // Call open gripper w
         if (msg->buttons.at(0) == 1){                    
