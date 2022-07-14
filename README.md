@@ -92,6 +92,9 @@ Odometry plugin fails to load with following msg:
 [ign gazebo-1] [Err] [OdometryPublisher.cc:132] OdometryPublisher system plugin should be attached to a model entity. Failed to initialize.
 ```
 
+Source code for odometry publisher can be found [here](https://github.com/gazebosim/gz-sim/blob/ign-gazebo6/src/systems/odometry_publisher/OdometryPublisher.cc)
+
+
 
 ### TODO: 
 
