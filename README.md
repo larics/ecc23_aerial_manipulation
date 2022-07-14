@@ -85,6 +85,13 @@ Parts of the system that need to be addressed.
 - relative localization
 - UAV cooperation 
 
+### Odometry
+
+Odometry plugin fails to load with following msg: 
+```
+[ign gazebo-1] [Err] [OdometryPublisher.cc:132] OdometryPublisher system plugin should be attached to a model entity. Failed to initialize.
+```
+
 
 ### TODO: 
 
