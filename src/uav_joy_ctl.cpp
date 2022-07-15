@@ -61,6 +61,29 @@ void UavJoyCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) 
     amLCmdVelPub_->publish(teleop_msg); 
 }
 
+void UavJoyCtl::pose_callback(const geometry_msgs::msg::Pose::SharedPtr msg) const
+{
+    // TODO: Get velocity from comparison of poses
+    // TODO: Create method that will publish odometry 
+    if (!first_pose_reciv)
+    {
+        pose = msg.pose
+    }
+
+    else
+    {   
+        //TODO: Add method to determine time difference between current pose and previous pose
+        // Get current pose
+        pose_ = msg.pose
+        // Calculate previous pose  
+        dp = pose_ - pose 
+        pose = msg.pose
+
+    }
+
+    first_pose_reciv = true; 
+}
+
 void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 {   
             
@@ -146,6 +169,7 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
     }
 
 }
+
 
 bool UavJoyCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                               std_srvs::srv::Empty::Response::SharedPtr res)
