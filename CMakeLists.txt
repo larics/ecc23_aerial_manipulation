@@ -16,6 +16,8 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2_ros)
+find_package(tf2_msgs)
 
 add_executable(uav_joy_ctl src/uav_joy_ctl_node.cpp src/uav_joy_ctl.cpp)
 
@@ -26,7 +28,7 @@ target_include_directories(uav_joy_ctl
 
 # Add target dependencies for correct linking
 ament_target_dependencies(uav_joy_ctl
-  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs)
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs tf2_ros tf2_msgs)
 
 
 if(BUILD_TESTING)

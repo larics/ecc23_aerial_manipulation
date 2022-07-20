@@ -5,6 +5,8 @@
 UavJoyCtl::UavJoyCtl(): Node("uav_joy_ctl")
 {
 
+
+   
     // Initalize 
     init(); 
 }
@@ -13,8 +15,6 @@ void UavJoyCtl::init()
 {   
     // Publishers
     amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_L/cmd_vel", 1); 
-
-  
     amSCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_S/cmd_vel", 1); 
     amLGripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_left/cmd_pos", 1); 
     amLGripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_right/cmd_pos", 1); 
@@ -23,6 +23,8 @@ void UavJoyCtl::init()
     // Subscribers
     joySub_                   = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavJoyCtl::joy_callback, this, _1)); 
     teleopSub_                = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, std::bind(&UavJoyCtl::teleop_callback, this, _1)); 
+    amLPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_L/pose_static", 1, std::bind(&UavJoyCtl::amL_pose_callback, this, _1)); 
+    amSPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_S/pose_static", 1, std::bind(&UavJoyCtl::amS_pose_callback, this, _1)); 
 
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
@@ -31,11 +33,20 @@ void UavJoyCtl::init()
     // Clients 
     openGripperClient_        = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
     closeGripperClient_       = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
-             
+
+    // tf buffer
+    amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
+    amLTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
+
+    // tf listener
+    amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
+    amLTransformListener = std::make_shared<tf2_ros::TransformListener>(*amLTfBuffer); 
+
+    // std::chrono::duration<double> SYSTEM_DT(0.2);
+    // timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavJoyCtl::timer_callback, this)); 
+
     //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
-            
-    //constexpr static double SYSTEM_DT = 0.2;
-    //timer_ = this->create_wall_timer(std::chrono::duration<double>(SYSTEM_DT), std::bind(&UavJoyCtl::timer_callback, this)); 
+
 }
 
 // Timer callback executes every 1.0/0.2 (5s)
@@ -60,29 +71,56 @@ void UavJoyCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) 
     //* Publish current speed to aerial manipulator (dummy callback to check current ctl)
     amLCmdVelPub_->publish(teleop_msg); 
 }
-
-void UavJoyCtl::pose_callback(const geometry_msgs::msg::Pose::SharedPtr msg) const
-{
+    
+//
+//void UavJoyCtl::pose_callback(const geometry_msgs::msg::Pose::SharedPtr msg) const
+//{
     // TODO: Get velocity from comparison of poses
     // TODO: Create method that will publish odometry 
-    if (!first_pose_reciv)
-    {
-        pose = msg.pose
-    }
+//    if (!first_pose_reciv)
+//    {
+//        pose = msg.pose
+//    }
 
-    else
-    {   
+//    else
+//    {   
         //TODO: Add method to determine time difference between current pose and previous pose
         // Get current pose
-        pose_ = msg.pose
+//        pose_ = msg.pose
         // Calculate previous pose  
-        dp = pose_ - pose 
-        pose = msg.pose
+//        dp = pose_ - pose 
+//        pose = msg.pose
 
-    }
+//    }
 
-    first_pose_reciv = true; 
+//    first_pose_reciv = true; 
+//}
+
+void UavJoyCtl::amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
+{
+        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amL pose!"); 
+        geometry_msgs::msg::TransformStamped transform_stamped;
+        std::string toFrameRel("child_link"); 
+        std::string fromFrameRel("parent_link"); 
+
+        try {
+          transform_stamped = amLTfBuffer->lookupTransform(
+            toFrameRel, fromFrameRel,
+            tf2::TimePointZero);
+        } catch (tf2::TransformException & ex) {
+          RCLCPP_INFO(
+            this->get_logger(), "Could not transform %s to %s: %s",
+            toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
+          return;
+        }
 }
+
+void UavJoyCtl::amS_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const 
+{
+        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amS pose!"); 
+
+}
+
 
 void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 {   
