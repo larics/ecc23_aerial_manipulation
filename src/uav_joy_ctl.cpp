@@ -2,22 +2,25 @@
 #include "uav_joy_ctl.hpp"
 
 
+// How to call this method with a param? 
 UavJoyCtl::UavJoyCtl(): Node("uav_joy_ctl")
 {
-
-
-   
+ 
     // Initalize 
     init(); 
 }
 
 void UavJoyCtl::init()
 {   
-    // Publishers
-    amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_L/cmd_vel", 1); 
-    amSCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_S/cmd_vel", 1); 
-    amLGripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_left/cmd_pos", 1); 
-    amLGripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_right/cmd_pos", 1); 
+
+
+    std::string ns_ = this->get_namespace(); 	
+    // Publishers 
+    amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
+    
+    
+    amLGripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
+    amLGripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     amSGripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("/am_S/gripper/suction_on", 1); 
             
     // Subscribers
@@ -27,12 +30,12 @@ void UavJoyCtl::init()
     amSPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_S/pose_static", 1, std::bind(&UavJoyCtl::amS_pose_callback, this, _1)); 
 
     // Services
-    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
-    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
+    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
+    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
 
     // Clients 
-    openGripperClient_        = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
-    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
+    openGripperClient_        = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("open_gripper")); 
+    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("close_gripper"));
 
     // tf buffer
     amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
@@ -40,12 +43,13 @@ void UavJoyCtl::init()
 
     // tf listener
     amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
-    amLTransformListener = std::make_shared<tf2_ros::TransformListener>(*amLTfBuffer); 
+    amLTransformListener= std::make_shared<tf2_ros::TransformListener>(*amLTfBuffer); 
 
     // std::chrono::duration<double> SYSTEM_DT(0.2);
     // timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavJoyCtl::timer_callback, this)); 
 
     //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
+    //TODO: Decouple large and small UAV --> define basic methods  
 
 }
 
