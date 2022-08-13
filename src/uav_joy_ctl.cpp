@@ -34,8 +34,8 @@ void UavJoyCtl::init()
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
 
     // Clients 
-    openGripperClient_        = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("open_gripper")); 
-    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("close_gripper"));
+    openGripperClient_        = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper")); 
+    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"));
 
     // tf buffer
     amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 

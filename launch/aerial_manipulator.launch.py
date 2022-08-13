@@ -113,6 +113,7 @@ def launch(context, *args, **kwargs):
     uav_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_joy_ctl", 
+        namespace="am_L", # Add node namespace for UAV ctl 
         output="screen"
     )
 
@@ -124,8 +125,8 @@ def launch(context, *args, **kwargs):
             #ros2_ign_score_bridge, 
             #ros2_ign_run_clock_bridge, 
             #ros2_ign_phase_bridge, 
-            uav_ctl_node]
-
+            #uav_ctl_node]
+            ]
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('ign_args', default_value='',
