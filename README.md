@@ -95,13 +95,13 @@ Odometry plugin fails to load with following msg:
 Source code for odometry publisher can be found [here](https://github.com/gazebosim/gz-sim/blob/ign-gazebo6/src/systems/odometry_publisher/OdometryPublisher.cc)
 
 
-
 ### TODO: 
 
-- [ ] Add method for joystick control (reference generation) 
-- [ ] Add namespaceing to enable easier UAV ctl 
+- [ ] *Add method for joystick control (reference generation) --> create separate node for joy control*  
+- [ ] *Add namespaceing to enable easier UAV ctl --> on node level *
+- [ ] *Add position control*
+- [ ] Think of relative vs. global position control 
 - [ ] Check suction mechanism 
 - [ ] Tune controllers 
-- [ ] Add positional control 
 - [ ] Enable development on server 
 

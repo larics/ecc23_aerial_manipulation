@@ -53,7 +53,7 @@ def launch(context, *args, **kwargs):
                 'P': '0', 
                 'Y': '0', 
                 'gripper':'mbzirc_suction_gripper', 
-                'slot0':'mbzirc_hd_camera', 
+                #'slot0':'mbzirc_hd_camera', 
                 #'slot0' : 'mbzirc_rgbd_camera',
                 'type':'uav2', 
                 'flightTime': '6000', 

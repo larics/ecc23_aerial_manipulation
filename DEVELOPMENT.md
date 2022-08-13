@@ -15,12 +15,16 @@ done:
  - [x] Tested lifting of small objects of interest 
 
 todo: 
- - [ ] Add upstream of mbzirc repo 
- - [ ] Estimate object position with ICP 
- - [ ] Create ICP ROS2 package 
- - [ ] Test output of ICP and create simple aerial servoing to navigate UAV to the obstacle (simple, yet efficient) 
- - [ ] Think of states for lifting object
+ - [x] Add upstream of mbzirc repo 
+ - [ ] Estimate object position with ICP --> postponed
+ - [ ] Create ICP ROS2 package  --> postponed  
+ - [ ] Test output of ICP and create simple aerial servoing to navigate UAV to the obstacle (simple, yet efficient) --> postponed
+ - [ ] Think of states for lifting object 
  - [ ] Think of collaborative object lifting 
-
+ - [ ] Add namespacing 
+ - [ ] Add pose estimation
+ - [ ] Add service to change current joy command
+ - [ ] Create joy node to enable control of multiple UAVs 
+ 
 conclusions: 
  - [x] RGBD camera kill sim factor (99% - 20%)
