@@ -112,8 +112,14 @@ def launch(context, *args, **kwargs):
 
     uav_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
-        executable="uav_joy_ctl", 
+        executable="uav_ctl", 
         output="screen"
+    )
+
+    uav_joy_node = Node(
+        package="mbzirc_aerial_manipulation", 
+        executable="uav_joy", 
+        output="screen" 
     )
 
     # Add spawning of UAVs
@@ -123,7 +129,8 @@ def launch(context, *args, **kwargs):
             spawn_large_aerial_manipulator,
             #ros2_ign_score_bridge, 
             #ros2_ign_run_clock_bridge, 
-            #ros2_ign_phase_bridge, 
+            #ros2_ign_phase_bridge,
+            uav_joy_node, 
             uav_ctl_node]
 
 def generate_launch_description():

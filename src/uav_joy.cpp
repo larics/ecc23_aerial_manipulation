@@ -16,6 +16,7 @@ void UavJoy::init()
 
     chooseUavSrv_ 	=	this->create_service<mbzirc_aerial_manipulation::srv::ChooseUav>("/choose_uav", std::bind(&UavJoy::choose_uav, this, _1, _2));
 
+    RCLCPP_INFO(this->get_logger(), "Initialized uav_joy"); 
 }
 
 void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
@@ -40,5 +41,12 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 void UavJoy::choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Request::SharedPtr req, 
 		mbzirc_aerial_manipulation::srv::ChooseUav::Response::SharedPtr res) 
 {
-	std::cout << req << std::endl; 
+	std::cout << req->uav_ns  << std::endl;
+
+	// Maybe will be neccessary to have mutex lock to prevent breaking when trying to publish 
+	// message during topic change
+	std::string uav_namespace; 
+        uav_namespace = static_cast<std::string>(req->uav_ns); 
+	RCLCPP_INFO(this->get_logger(), "Joystick control switched to %s!", uav_namespace.c_str()); 
+        cmdVelPub_ = this->create_publisher<geometry_msgs::msg::Twist>(uav_namespace + std::string("/cmd_vel"), 1); 	
 }
