@@ -64,9 +64,8 @@ void UavCtl::timer_callback()
 void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 {       
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved uav pose!"); 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "I recieved uav pose!"); 
         geometry_msgs::msg::TransformStamped transform_stamped;
-
 
         std::string uav_ns = this->ns_;
         // Remove backslash 
@@ -74,7 +73,13 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
         std::string toFrameRel("empty_platform"); 
         std::string fromFrameRel(uav_ns); 
 
+        // This message is list of transforms, check how to inspect list of transforms in ROS2
+
+        //RCLCPP_INFO_STREAM(this->get_logger(), "Recieved following msg: %msg" << msg->c_str()); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "Recieved following msg:" << msg.c_str()); 
+
         try {
+          // Looking at wrong buffer!
           transform_stamped = amLTfBuffer->lookupTransform(
             toFrameRel, fromFrameRel,
             tf2::TimePointZero);
