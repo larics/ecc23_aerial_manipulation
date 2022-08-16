@@ -1,5 +1,5 @@
-#ifndef UAV_JOY_CTRL_H
-#define UAV_JOY_CTRL_H
+#ifndef UAV_CTRL_H
+#define UAV_CTRL_H
 
 #include <chrono>
 #include <functional>
@@ -24,13 +24,13 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2; 
 
-class UavJoyCtl: public rclcpp::Node
+class UavCtl: public rclcpp::Node
 {
 
     public: 
 
-        UavJoyCtl(); 
-        //~UavJoyCtl(); 
+        UavCtl(); 
+        //~UavCtl(); 
 
     private: 
 
@@ -69,4 +69,4 @@ class UavJoyCtl: public rclcpp::Node
 
 };
 
-#endif  // CONTROL_ARM_H
+#endif  

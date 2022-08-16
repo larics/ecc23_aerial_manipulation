@@ -16,18 +16,32 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+# Dependencies for service generation 
+find_package(rosidl_default_generators REQUIRED)
+find_package(mbzirc_aerial_manipulation REQUIRED)
 
-add_executable(uav_joy_ctl src/uav_joy_ctl_node.cpp src/uav_joy_ctl.cpp)
+add_executable(uav_ctl src/uav_ctl_node.cpp src/uav_ctl.cpp)
+add_executable(uav_joy src/uav_joy_node.cpp src/uav_joy.cpp)
 
-target_include_directories(uav_joy_ctl 
+rosidl_generate_interfaces(${PROJECT_NAME}
+	"srv/ChooseUav.srv"
+)
+
+target_include_directories(uav_ctl 
   PRIVATE 
   include/
 )
 
+target_include_directories(uav_joy
+  PRIVATE
+  include/
+)
+  
 # Add target dependencies for correct linking
-ament_target_dependencies(uav_joy_ctl
-  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs)
-
+ament_target_dependencies(uav_ctl
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation)
+ament_target_dependencies(uav_joy
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation) 
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -41,7 +55,8 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS 
-  uav_joy_ctl 
+  uav_ctl 
+  uav_joy
   DESTINATION lib/${PROJECT_NAME}
 )
 

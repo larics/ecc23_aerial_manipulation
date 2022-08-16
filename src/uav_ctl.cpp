@@ -1,15 +1,15 @@
 
-#include "uav_joy_ctl.hpp"
+#include "uav_ctl.hpp"
 
 
-UavJoyCtl::UavJoyCtl(): Node("uav_joy_ctl")
+UavCtl::UavCtl(): Node("uav_ctl")
 {
 
     // Initalize 
     init(); 
 }
 
-void UavJoyCtl::init()
+void UavCtl::init()
 {   
     // Publishers
     amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_L/cmd_vel", 1); 
@@ -21,12 +21,12 @@ void UavJoyCtl::init()
     amSGripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("/am_S/gripper/suction_on", 1); 
             
     // Subscribers
-    joySub_                   = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavJoyCtl::joy_callback, this, _1)); 
-    teleopSub_                = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, std::bind(&UavJoyCtl::teleop_callback, this, _1)); 
+    joySub_                   = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavCtl::joy_callback, this, _1)); 
+    teleopSub_                = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, std::bind(&UavCtl::teleop_callback, this, _1)); 
 
     // Services
-    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavJoyCtl::open_gripper, this, _1, _2)); 
-    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  std::bind(&UavJoyCtl::close_gripper, this, _1, _2)); 
+    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
+    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
 
     // Clients 
     openGripperClient_        = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
@@ -39,14 +39,14 @@ void UavJoyCtl::init()
 }
 
 // Timer callback executes every 1.0/0.2 (5s)
-void UavJoyCtl::timer_callback()
+void UavCtl::timer_callback()
 {
     auto message = std_msgs::msg::String(); 
     message.data = "Hello, world! " + std::to_string(count_++); 
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
 }        
 
-void UavJoyCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
+void UavCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
 {
     RCLCPP_INFO_STREAM(this->get_logger(), "I heard: " << msg->linear.x); //%s'", msg->data.c_str()); 
 
@@ -61,7 +61,7 @@ void UavJoyCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) 
     amLCmdVelPub_->publish(teleop_msg); 
 }
 
-void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
+void UavCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 {   
             
     float scale_factor; 
@@ -147,7 +147,7 @@ void UavJoyCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 
 }
 
-bool UavJoyCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
+bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                               std_srvs::srv::Empty::Response::SharedPtr res)
 {
 
@@ -162,7 +162,7 @@ bool UavJoyCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req
     return true; 
 }
 
-bool UavJoyCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
+bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                             std_srvs::srv::Empty::Response::SharedPtr res)
 {
 
