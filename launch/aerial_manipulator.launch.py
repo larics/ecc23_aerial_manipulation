@@ -110,9 +110,19 @@ def launch(context, *args, **kwargs):
         arguments=['/mbzirc/phase@std_msgs/msg/String@ignition.msgs.StringMsg'],
     )
 
-    uav_ctl_node = Node(
+    # Control node for small UAV (example)
+    uav1_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
+        namespace="uav1", # Add node namespace for UAV ctl 
+        output="screen"
+    )
+
+    # Control node for large UAV (example)
+    uav2_ctl_node = Node(
+        package="mbzirc_aerial_manipulation", 
+        executable="uav_ctl", 
+        namespace="uav2", 
         output="screen"
     )
 
@@ -131,7 +141,8 @@ def launch(context, *args, **kwargs):
             #ros2_ign_run_clock_bridge, 
             #ros2_ign_phase_bridge,
             uav_joy_node, 
-            uav_ctl_node]
+            uav1_ctl_node, 
+            uav2_ctl_node]
 
 def generate_launch_description():
     return LaunchDescription([

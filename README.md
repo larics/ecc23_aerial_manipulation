@@ -94,12 +94,19 @@ Odometry plugin fails to load with following msg:
 
 Source code for odometry publisher can be found [here](https://github.com/gazebosim/gz-sim/blob/ign-gazebo6/src/systems/odometry_publisher/OdometryPublisher.cc)
 
+### Namespace 
+
+Run node with custom namespace with cli with following command: 
+```
+ros2 run mbzirc_aerial_manipulation uav_joy_ctl --ros-args -r __ns:=<wanted_namespace>
+``` 
 
 ### TODO: 
 
-- [ ] *Add method for joystick control (reference generation) --> create separate node for joy control*  
-- [ ] *Add namespaceing to enable easier UAV ctl --> on node level *
-- [ ] *Add position control*
+- [x] *Add method for joystick control (reference generation) --> create separate node for joy control*  
+- [x] *Add namespaceing to enable easier UAV ctl --> on node level *
+- [ ] *Add position control* 
+- [ ] Add clients to joy control 
 - [ ] Think of relative vs. global position control 
 - [ ] Check suction mechanism 
 - [ ] Tune controllers 

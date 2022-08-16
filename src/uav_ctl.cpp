@@ -2,40 +2,54 @@
 #include "uav_ctl.hpp"
 
 
+// How to call this method with a param? 
 UavCtl::UavCtl(): Node("uav_ctl")
 {
-
+ 
     // Initalize 
     init(); 
 }
 
 void UavCtl::init()
 {   
-    // Publishers
-    amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_L/cmd_vel", 1); 
 
-  
-    amSCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("/am_S/cmd_vel", 1); 
-    amLGripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_left/cmd_pos", 1); 
-    amLGripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("/am_L/gripper/joint/finger_right/cmd_pos", 1); 
+    // Take node namespace as uav_name (easiest way to capture ns param)
+    std::string ns_ = this->get_namespace(); 	
+
+    // Publishers 
+    amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
+    amLGripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
+    amLGripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     amSGripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("/am_S/gripper/suction_on", 1); 
             
     // Subscribers
-    joySub_                   = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavCtl::joy_callback, this, _1)); 
-    teleopSub_                = this->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 1, std::bind(&UavCtl::teleop_callback, this, _1)); 
+    amLPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_L/pose_static", 1, std::bind(&UavCtl::amL_pose_callback, this, _1)); 
+    amSPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_S/pose_static", 1, std::bind(&UavCtl::amS_pose_callback, this, _1)); 
 
     // Services
-    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("/am_L/open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
-    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("/am_L/close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
+    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
+    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
+    startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
+    stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
-    // Clients 
-    openGripperClient_        = this->create_client<std_srvs::srv::Empty>("/am_L/open_gripper"); 
-    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>("/am_L/close_gripper");
-             
+    // Clients --> TODO: Move this clients to uav_ctl 
+    openGripperClient_        = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper")); 
+    closeGripperClient_       = this->create_client<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"));
+
+    // tf buffer
+    amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
+    amLTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
+
+    // tf listener
+    amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
+    amLTransformListener= std::make_shared<tf2_ros::TransformListener>(*amLTfBuffer); 
+
+    // std::chrono::duration<double> SYSTEM_DT(0.2);
+    // timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavJoyCtl::timer_callback, this)); 
+
     //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
-            
-    //constexpr static double SYSTEM_DT = 0.2;
-    //timer_ = this->create_wall_timer(std::chrono::duration<double>(SYSTEM_DT), std::bind(&UavJoyCtl::timer_callback, this)); 
+    //TODO: Decouple large and small UAV --> define basic methods  
+
 }
 
 // Timer callback executes every 1.0/0.2 (5s)
@@ -46,104 +60,53 @@ void UavCtl::timer_callback()
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
 }        
 
-void UavCtl::teleop_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
+//TODO: Write pose callback that enables UAV ctl!
+void UavCtl::amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 {
-    RCLCPP_INFO_STREAM(this->get_logger(), "I heard: " << msg->linear.x); //%s'", msg->data.c_str()); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amL pose!"); 
+        geometry_msgs::msg::TransformStamped transform_stamped;
+        std::string toFrameRel("child_link"); 
+        std::string fromFrameRel("parent_link"); 
 
-    //msg_->linear.z = msg->linear.x; // / 5.0; 
-    auto teleop_msg = geometry_msgs::msg::Twist(); 
-    teleop_msg.linear.z = msg->linear.x; 
+        try {
+          transform_stamped = amLTfBuffer->lookupTransform(
+            toFrameRel, fromFrameRel,
+            tf2::TimePointZero);
+        } catch (tf2::TransformException & ex) {
+          RCLCPP_INFO(
+            this->get_logger(), "Could not transform %s to %s: %s",
+            toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
+          return;
+        }
 
-    //* This should work!
-    RCLCPP_INFO_STREAM(this->get_logger(), "I want to publish: " << teleop_msg.linear.x); 
+            //
+    //void UavJoyCtl::pose_callback(const geometry_msgs::msg::Pose::SharedPtr msg) const
+    //{
+        // TODO: Get velocity from comparison of poses
+        // TODO: Create method that will publish odometry 
+    //    if (!first_pose_reciv)
+    //    {
+    //        pose = msg.pose
+    //    }
 
-    //* Publish current speed to aerial manipulator (dummy callback to check current ctl)
-    amLCmdVelPub_->publish(teleop_msg); 
+    //    else
+    //    {   
+            //TODO: Add method to determine time difference between current pose and previous pose
+            // Get current pose
+    //        pose_ = msg.pose
+            // Calculate previous pose  
+    //        dp = pose_ - pose 
+    //        pose = msg.pose
+
+    //    }
+
+    //    first_pose_reciv = true; 
+    //}
 }
 
-void UavCtl::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
-{   
-            
-    float scale_factor; 
-    float scale_factor_height; 
-    bool switch_ctl = false; 
-
-    // If L1 pressed, ctl small UAV
-    if (msg->buttons.at(4) == 1){
-        switch_ctl = true; 
-    }
-
-    // Call twist publisher based on joy readings 
-    std::vector<float> axes_;
-    axes_ = msg->axes; 
-
-    // Populate teleop_twist msg
-    float pitch; float height;  float roll; float yaw;             
-    roll = axes_.at(3); pitch = axes_.at(4); 
-    yaw  = axes_.at(0); height = axes_.at(1);
-
-    // Change mode of control at R1
-    if (msg->buttons.at(5) == 1){
-        scale_factor = 1.1;
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Drive"); 
-
-    }else{
-        scale_factor = 0.2; 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE_L]: Approach!"); 
-
-    }
-
-    if (msg->buttons[3] == 1){
-        scale_factor_height = 10.0; 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Lifting!"); 
-    }else{
-        scale_factor_height = scale_factor; 
-    }  
-
-    // TODO: Make sure that velocity is only thing we can command to UAVs
-    auto teleop_msg             = geometry_msgs::msg::Twist(); 
-    teleop_msg.linear.x         = pitch     * scale_factor; 
-    teleop_msg.linear.y         = roll      * scale_factor;  
-    teleop_msg.linear.z         = height    * scale_factor_height * 0.2; 
-    teleop_msg.angular.z        = yaw       * scale_factor * 0.4;
-
-    if (switch_ctl)
-
-    {
-        std_msgs::msg::Bool suction_msg; 
-
-        // Call start suction 
-        if (msg->buttons.at(2) == 1){
-            suction_msg.data = true;
-            RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_S] Suction on!");                    
-        }else{
-            suction_msg.data = false; 
-        }
-
-        amSCmdVelPub_->publish(teleop_msg); 
-        amSGripperCmdSuctionPub_->publish(suction_msg); 
-
-    }else{
-        
-        amLCmdVelPub_->publish(teleop_msg); 
-        // Call open gripper w
-        if (msg->buttons.at(0) == 1){                    
-            //https://answers.ros.org/question/343279/ros2-how-to-implement-a-sync-service-client-in-a-node/
-            // https://answers.ros.org/question/340389/client-doesnt-return-when-declared-inside-c-class-in-ros-2/
-            RCLCPP_INFO_STREAM(this->get_logger(), "Opening Gripper!");
-            auto req_ = std::make_shared<std_srvs::srv::Empty::Request>();    
-            openGripperClient_->async_send_request(req_); 
-        }
-
-        // Call close gripper
-        if (msg->buttons.at(2) == 1){
-            RCLCPP_INFO_STREAM(this->get_logger(), "Closing Gripper!");
-            auto req_ = std::make_shared<std_srvs::srv::Empty::Request>(); 
-            closeGripperClient_->async_send_request(req_); 
-        }
-
-
-    }
+void UavCtl::amS_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const 
+{
+        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amS pose!"); 
 
 }
 
@@ -161,7 +124,6 @@ bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
 
     return true; 
 }
-
 bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                             std_srvs::srv::Empty::Response::SharedPtr res)
 {
@@ -177,6 +139,8 @@ bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
     return true;  
         
 }
+
+
 
 
 
