@@ -14,7 +14,7 @@ void UavCtl::init()
 {   
 
     // Take node namespace as uav_name (easiest way to capture ns param)
-    std::string ns_ = this->get_namespace(); 	
+    ns_ = this->get_namespace(); 	
 
     // Publishers 
     amLCmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
@@ -23,8 +23,9 @@ void UavCtl::init()
     amSGripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("/am_S/gripper/suction_on", 1); 
             
     // Subscribers
-    amLPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_L/pose_static", 1, std::bind(&UavCtl::amL_pose_callback, this, _1)); 
-    amSPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_S/pose_static", 1, std::bind(&UavCtl::amS_pose_callback, this, _1)); 
+    // amLPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_L/pose_static", 1, std::bind(&UavCtl::amL_pose_callback, this, _1)); 
+    // amSPoseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("/am_S/pose_static", 1, std::bind(&UavCtl::amS_pose_callback, this, _1)); 
+    poseSub_                  = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
 
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
@@ -60,18 +61,24 @@ void UavCtl::timer_callback()
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
 }        
 
-//TODO: Write pose callback that enables UAV ctl!
-void UavCtl::amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
-{
-        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amL pose!"); 
+void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
+{       
+
+        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved uav pose!"); 
         geometry_msgs::msg::TransformStamped transform_stamped;
-        std::string toFrameRel("child_link"); 
-        std::string fromFrameRel("parent_link"); 
+
+
+        std::string uav_ns = this->ns_;
+        // Remove backslash 
+        uav_ns.erase(0, 1); 
+        std::string toFrameRel("empty_platform"); 
+        std::string fromFrameRel(uav_ns); 
 
         try {
           transform_stamped = amLTfBuffer->lookupTransform(
             toFrameRel, fromFrameRel,
             tf2::TimePointZero);
+
         } catch (tf2::TransformException & ex) {
           RCLCPP_INFO(
             this->get_logger(), "Could not transform %s to %s: %s",
@@ -79,35 +86,7 @@ void UavCtl::amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) co
           return;
         }
 
-            //
-    //void UavJoyCtl::pose_callback(const geometry_msgs::msg::Pose::SharedPtr msg) const
-    //{
-        // TODO: Get velocity from comparison of poses
-        // TODO: Create method that will publish odometry 
-    //    if (!first_pose_reciv)
-    //    {
-    //        pose = msg.pose
-    //    }
-
-    //    else
-    //    {   
-            //TODO: Add method to determine time difference between current pose and previous pose
-            // Get current pose
-    //        pose_ = msg.pose
-            // Calculate previous pose  
-    //        dp = pose_ - pose 
-    //        pose = msg.pose
-
-    //    }
-
-    //    first_pose_reciv = true; 
-    //}
-}
-
-void UavCtl::amS_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const 
-{
-        RCLCPP_INFO_STREAM(this->get_logger(), "I recieved amS pose!"); 
-
+        RCLCPP_INFO(this->get_logger(), "Found transform!"); 
 }
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -140,7 +119,17 @@ bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
         
 }
 
+bool UavCtl::start_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
+                           std_srvs::srv::Empty::Response::SharedPtr res)
+{
+    return true; 
+}
 
+bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
+                          std_srvs::srv::Empty::Response::SharedPtr res)
+{
+    return true; 
+}
 
 
 

@@ -40,6 +40,8 @@ class UavCtl: public rclcpp::Node
         UavCtl(); 
         //~UavCtl(); 
 
+        std::string ns_; 
+
 
     private: 
 
@@ -54,6 +56,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr          joySub_;  
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       amLPoseSub_; 
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       amSPoseSub_; 
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       poseSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                openGripperSrv_; 
@@ -84,6 +87,7 @@ class UavCtl: public rclcpp::Node
         void timer_callback(); 
         void amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
         void amS_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
+        void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
         bool close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                            std_srvs::srv::Empty::Response::SharedPtr res); 
         bool open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 

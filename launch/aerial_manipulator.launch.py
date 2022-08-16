@@ -114,7 +114,7 @@ def launch(context, *args, **kwargs):
     uav1_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
-        namespace="uav1", # Add node namespace for UAV ctl 
+        namespace="am_L", # Add node namespace for UAV ctl 
         output="screen"
     )
 
@@ -122,7 +122,7 @@ def launch(context, *args, **kwargs):
     uav2_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
-        namespace="uav2", 
+        namespace="am_S", 
         output="screen"
     )
 
