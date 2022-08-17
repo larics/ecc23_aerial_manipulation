@@ -101,6 +101,30 @@ Run node with custom namespace with cli with following command:
 ros2 run mbzirc_aerial_manipulation uav_joy_ctl --ros-args -r __ns:=<wanted_namespace>
 ``` 
 
+### PID controller 
+
+Currently used PID controller can be found [here]. 
+
+### Clean build issues 
+
+If you want to build this package, there could be some issues 
+regarding custom services. In order to mitigate those issues, please comment out all
+lines in `CMakeLists.txt` that take in consideration `uav_joy` as well as 
+```
+find_package(mbzirc_aerial_manipulation REQUIRED) 
+```
+. 
+
+After that, run: 
+```
+colcon build --merge-install
+source <workspace>/install/setup.bash
+```
+
+Uncomment stuff regarding `uav_joy`. 
+Run build again. 
+
+
 ### TODO: 
 
 - [x] *Add method for joystick control (reference generation) --> create separate node for joy control*  

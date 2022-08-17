@@ -29,6 +29,12 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "std_srvs/srv/empty.hpp"
 
+//* controller
+#include <jlb_pid/controller.hpp>
+#include <jlb_pid/pid.hpp>
+#include <jlb_pid/config.hpp>
+
+
 using namespace std::chrono_literals;  
 using std::placeholders::_1;
 using std::placeholders::_2; 
@@ -55,36 +61,46 @@ class UavCtl: public rclcpp::Node
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr              joySub_;  
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           amLPoseSub_; 
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           amSPoseSub_; 
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           poseSub_; 
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    currPoseSub_;
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    cmdPoseSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    closeGripperSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    startSuctionSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    stopSuctionSrv_; 
-
         
         // timers
-        rclcpp::TimerBase::SharedPtr                                        timer_{nullptr};
+        rclcpp::TimerBase::SharedPtr                                        timer_;
+
+        // controllers
+        jlbpid::Controller                                                  controller_; 
+        jlbpid::PID                                                         pid; 
 
         // tf_buffers
         std::unique_ptr<tf2_ros::Buffer>                                    amSTfBuffer{nullptr};
-        std::unique_ptr<tf2_ros::Buffer>                                    amLTfBuffer{nullptr};
 
         // transform_listener
         std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr}; 
-        std::shared_ptr<tf2_ros::TransformListener>                         amLTransformListener{nullptr}; 
 
-        int operationMode;
-        size_t count_; 
+        int                                                                 operationMode;
+        bool                                                                nodeInitialized = false; 
+        geometry_msgs::msg::PoseStamped::SharedPtr                          currentPose_; 
+        geometry_msgs::msg::PoseStamped::SharedPtr                          wantedPose_; 
 
+        // init method
         void init(); 
+
+        // timer callback 
         void timer_callback(); 
-        void amL_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
-        void amS_pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
+
+        // sub callbacks
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
+        void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const; 
+        void cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const; 
+
+        // service callbacks
         bool close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                            std_srvs::srv::Empty::Response::SharedPtr res); 
         bool open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 

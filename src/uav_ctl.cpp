@@ -15,7 +15,6 @@ void UavCtl::init()
 
     // Take node namespace as uav_name (easiest way to capture ns param)
     ns_ = this->get_namespace(); 	
-
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1); 
@@ -24,7 +23,9 @@ void UavCtl::init()
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
     
     // Subscribers
-    poseSub_                  = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
+    poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
+    currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
+    cmdPoseSub_            = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_ref"), 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
 
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
@@ -33,28 +34,40 @@ void UavCtl::init()
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
     // tf buffer
-    amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
-    amLTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
-
+    //amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
     // tf listener
-    amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
-    amLTransformListener= std::make_shared<tf2_ros::TransformListener>(*amLTfBuffer); 
+    //amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
 
-    // std::chrono::duration<double> SYSTEM_DT(0.2);
-    // timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavJoyCtl::timer_callback, this)); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controller!");
+    // set pid with (kp, ki, kd) gains    
+    pid.kp = 5; pid.ki = 0; pid.kd = 0; controller_.set_pid(std::move(pid)); 
+    controller_.set_plant_state(0); 
+    
+    RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
 
-    //startSuctionService_ = this->create_service<std_srvs::srv::Triger>("/am_S/suction")
-    //TODO: Decouple large and small UAV --> define basic methods  
+    nodeInitialized = true; 
+    // possible to use milliseconds and duration
+    std::chrono::duration<double> SYSTEM_DT(0.1);
+    timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavCtl::timer_callback, this)); 
 
 }
 
-// Timer callback executes every 1.0/0.2 (5s)
-void UavCtl::timer_callback()
-{
-    auto message = std_msgs::msg::String(); 
-    message.data = "Hello, world! " + std::to_string(count_++); 
-    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str()); 
-}        
+void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const
+{   
+    // TODO: Fix this part!
+    //currentPose_->header.frame_id = msg->header.frame_id; 
+    //currentPose_->pose.position.z = msg->pose.position.z; 
+    int a; 
+}
+
+void UavCtl::cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const
+{   
+    // TODO: Fix this part!
+    //wantedPose_->header.frame_id = msg->header.frame_id; 
+    //wantedPose_->pose.position.z = msg->pose.position.z; 
+    int b; 
+
+}
 
 void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 {       
@@ -99,11 +112,12 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 
             }; 
         }
-
+        
+        /*
         // publish warning if there's no pose estimate
         if(!pose_estimate && check_complete){
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
-        }
+        }*/
 
 }
 
@@ -161,8 +175,24 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
 
 
 }
+// Timer callback executes every 1.0/0.2 (5s)
+void UavCtl::timer_callback()
+{
+    // TODO: Add control here for PID control :) 
+    // get current uav_state
+
+    // this PID is used only for controlling z axis
+    controller_.set_setpoint(100); 
+    controller_.update();
+    double state; 
+    state = controller_.get_control_effort();
+
+    
+    RCLCPP_INFO_STREAM(this->get_logger(), "State is: " << state); 
+    //RCLCPP_INFO_STREAM(this->get_logger(), "Timer works!");
 
 
+}   
 
 
 
