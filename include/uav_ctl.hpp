@@ -20,6 +20,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
@@ -46,34 +47,35 @@ class UavCtl: public rclcpp::Node
     private: 
 
         // publishers --> TODO: Change names!
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr         cmdVelPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            gripperCmdPosLeftPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            gripperCmdPosRightPub_; 
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr               gripperCmdSuctionPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr             cmdVelPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       poseGtPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                gripperCmdPosLeftPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                gripperCmdPosRightPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                   gripperCmdSuctionPub_; 
 
         // subscribers
-        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr          joySub_;  
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       amLPoseSub_; 
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       amSPoseSub_; 
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr       poseSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr              joySub_;  
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           amLPoseSub_; 
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           amSPoseSub_; 
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           poseSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                openGripperSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                closeGripperSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                startSuctionSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                stopSuctionSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    closeGripperSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    startSuctionSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    stopSuctionSrv_; 
 
         
         // timers
-        rclcpp::TimerBase::SharedPtr                                    timer_{nullptr};
+        rclcpp::TimerBase::SharedPtr                                        timer_{nullptr};
 
         // tf_buffers
-        std::unique_ptr<tf2_ros::Buffer>                                amSTfBuffer{nullptr};
-        std::unique_ptr<tf2_ros::Buffer>                                amLTfBuffer{nullptr};
+        std::unique_ptr<tf2_ros::Buffer>                                    amSTfBuffer{nullptr};
+        std::unique_ptr<tf2_ros::Buffer>                                    amLTfBuffer{nullptr};
 
         // transform_listener
-        std::shared_ptr<tf2_ros::TransformListener>                     amSTransformListener{nullptr}; 
-        std::shared_ptr<tf2_ros::TransformListener>                     amLTransformListener{nullptr}; 
+        std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr}; 
+        std::shared_ptr<tf2_ros::TransformListener>                         amLTransformListener{nullptr}; 
 
         int operationMode;
         size_t count_; 

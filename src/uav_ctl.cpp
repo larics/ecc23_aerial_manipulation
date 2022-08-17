@@ -18,6 +18,7 @@ void UavCtl::init()
 
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
+    poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1); 
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
@@ -58,34 +59,52 @@ void UavCtl::timer_callback()
 void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 {       
 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "I recieved uav pose!"); 
         geometry_msgs::msg::TransformStamped transform_stamped;
-
+        bool pose_estimate = false; 
+        bool check_complete = false; 
+        // Get uav ns
         std::string uav_ns = this->ns_;
         // Remove backslash 
         uav_ns.erase(0, 1); 
-        std::string toFrameRel("empty_platform"); 
-        std::string fromFrameRel(uav_ns); 
 
-        // This message is list of transforms, check how to inspect list of transforms in ROS2
+        // TODO: Bear in mind that world_name is variable in local scope, should be passed as arg
+        std::string world_name = "empty_platform";
 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "Recieved following msg: %msg" << msg->c_str()); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Recieved following msg:" << msg.c_str()); 
+        for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
+            // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
+            geometry_msgs::msg::TransformStamped transform_msg; 
+            transform_msg = msg->transforms.at(i); 
 
-        try {
-          // Looking at wrong buffer!
-          transform_stamped = amLTfBuffer->lookupTransform(
-            toFrameRel, fromFrameRel,
-            tf2::TimePointZero);
+            // tf's
+            std::string frame_id; std::string child_frame_id;  
+            frame_id        = transform_msg.header.frame_id; 
+            child_frame_id  = transform_msg.child_frame_id; 
 
-        } catch (tf2::TransformException & ex) {
-          RCLCPP_INFO(
-            this->get_logger(), "Could not transform %s to %s: %s",
-            toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
-          return;
+            // publish pose_gt for this uav
+            if (frame_id == world_name && child_frame_id == uav_ns) 
+            {   
+                pose_estimate = true; 
+                geometry_msgs::msg::PoseStamped msg; 
+
+                msg.header = transform_msg.header; 
+                msg.header.frame_id = child_frame_id; 
+                msg.pose.position.x = transform_msg.transform.translation.x; 
+                msg.pose.position.y = transform_msg.transform.translation.y; 
+                msg.pose.position.z = transform_msg.transform.translation.z; 
+                msg.pose.orientation = transform_msg.transform.rotation; 
+
+                poseGtPub_->publish(msg); 
+                check_complete = true; 
+                break; 
+
+            }; 
         }
 
-        RCLCPP_INFO(this->get_logger(), "Found transform!"); 
+        // publish warning if there's no pose estimate
+        if(!pose_estimate && check_complete){
+            RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
+        }
+
 }
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -139,6 +158,7 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
     msg.data = start_suction; 
 
     gripperCmdSuctionPub_->publish(msg); 
+
 
 }
 
