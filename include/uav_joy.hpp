@@ -17,6 +17,7 @@
 
 //* srvs
 #include "mbzirc_aerial_manipulation/srv/choose_uav.hpp"
+#include "std_srvs/srv/empty.hpp"
 
 using namespace std::chrono_literals; 
 using std::placeholders::_1; 
@@ -37,6 +38,13 @@ class UavJoy: public rclcpp::Node
 
 		// services
 		rclcpp::Service<mbzirc_aerial_manipulation::srv::ChooseUav>::SharedPtr chooseUavSrv_; 
+
+		// clients 
+		rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		chooseUavClient_; // Could be used for initing all UAVs
+        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		openGripperClient_; 
+        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr     closeGripperClient_; 
+		rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		startSuctionClient_; 
+		rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		stopSuctionClient_; 
 
 		void init(); 
 		void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const; 

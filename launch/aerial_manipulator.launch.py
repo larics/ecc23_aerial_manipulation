@@ -60,15 +60,37 @@ def launch(context, *args, **kwargs):
                 #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
                 }.items())
 
-    spawn_large_aerial_manipulator = IncludeLaunchDescription(
+    spawn_large_aerial_manipulator1 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('mbzirc_ign'), 'launch'), 
         '/spawn.launch.py']),
         launch_arguments = {
-                'name' : 'am_L', 
+                'name' : 'uav2', 
                 'world': 'empty_platform', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-2.5', 
+                'y': '-1.9',
+                'z': '2.0', 
+                'R': '0', 
+                'P': '0', 
+                'Y': '0', 
+                'type':'uav1',
+                #'slot0':'mbzirc_vga_camera', 
+                #'slot3': 'mbzirc_rgbd_camera', 
+                'gripper':'mbzirc_oberon7_gripper', 
+                'flightTime' : '6000' #'flightTime':'1020'
+                }.items())
+
+
+    spawn_large_aerial_manipulator2 = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+        get_package_share_directory('mbzirc_ign'), 'launch'), 
+        '/spawn.launch.py']),
+        launch_arguments = {
+                'name' : 'uav1', 
+                'world': 'empty_platform', 
+                'model': 'mbzirc_hexrotor', 
+                'x': '-5.0', 
                 'y': '-1.9',
                 'z': '2.0', 
                 'R': '0', 
@@ -114,7 +136,7 @@ def launch(context, *args, **kwargs):
     uav1_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
-        namespace="am_L", # Add node namespace for UAV ctl 
+        namespace="uav1", # Add node namespace for UAV ctl 
         output="screen"
     )
 
@@ -122,7 +144,7 @@ def launch(context, *args, **kwargs):
     uav2_ctl_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
-        namespace="am_S", 
+        namespace="uav2", 
         output="screen"
     )
 
@@ -136,7 +158,8 @@ def launch(context, *args, **kwargs):
     return [ign_gazebo,
             joy_node,  
             spawn_small_aerial_manipulator, 
-            spawn_large_aerial_manipulator,
+            spawn_large_aerial_manipulator1,
+            spawn_large_aerial_manipulator2, 
             #ros2_ign_score_bridge, 
             #ros2_ign_run_clock_bridge, 
             #ros2_ign_phase_bridge,

@@ -46,11 +46,10 @@ class UavCtl: public rclcpp::Node
     private: 
 
         // publishers --> TODO: Change names!
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr         amLCmdVelPub_; 
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr         amSCmdVelPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            amLGripperCmdPosLeftPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            amLGripperCmdPosRightPub_; 
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr               amSGripperCmdSuctionPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr         cmdVelPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            gripperCmdPosLeftPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr            gripperCmdPosRightPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr               gripperCmdSuctionPub_; 
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr          joySub_;  
@@ -64,11 +63,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                startSuctionSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                stopSuctionSrv_; 
 
-        // clients --> TODO: MoveClients to joyCtl or StateMachine in future 
-        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr                 openGripperClient_; 
-        rclcpp::Client<std_srvs::srv::Empty>::SharedPtr                 closeGripperClient_; 
-
-
+        
         // timers
         rclcpp::TimerBase::SharedPtr                                    timer_{nullptr};
 
