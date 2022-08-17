@@ -63,17 +63,17 @@ void UavCtl::init_ctl()
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
     
     // Height controller
-    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = 1.0; pid.ki = 0.01; pid.kd = 0.05; 
     z_controller_.set_pid(std::move(pid)); 
     z_controller_.set_plant_state(0);
 
     // Horizontal - x controller
-    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = 0.5; pid.ki = 0.01; pid.kd = 0.05; 
     x_controller_.set_pid(std::move(pid)); 
     x_controller_.set_plant_state(0);
 
     // Horizontal - y controller 
-    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0;  
+    pid.kp = 0.5; pid.ki = 0.01; pid.kd = 0.05;  
     y_controller_.set_pid(std::move(pid)); 
     y_controller_.set_plant_state(0);  
 
@@ -237,7 +237,8 @@ void UavCtl::timer_callback()
         // TODO: Add yaw to calculation
         err_x =  currPose_.pose.position.x - cmdPose_.pose.position.x; 
         err_y =  currPose_.pose.position.y - cmdPose_.pose.position.y; 
-        //rr_yaw =  0 - yaw; 
+        
+        // threading issue
         x_controller_.set_plant_state(currPose_.pose.position.x); 
         x_controller_.set_setpoint(cmdPose_.pose.position.x); 
         x_controller_.update(); 
@@ -249,6 +250,7 @@ void UavCtl::timer_callback()
         z_controller_.set_plant_state(currPose_.pose.position.z); 
         z_controller_.set_setpoint(cmdPose_.pose.position.z);  
         z_controller_.update();
+        
         //cmd_yaw = y_controller_.update(err_yaw); 
 
         geometry_msgs::msg::Twist cmdVel_;
@@ -261,14 +263,7 @@ void UavCtl::timer_callback()
         cmdVel_.angular.z = 0;  
 
         cmdVelPub_->publish(cmdVel_); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "###################"); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "x_err: " << currPose_.pose.position.x); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "x_cmd: " << cmd_x); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "y_err: " << currPose_.pose.position.y); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "y_cmd: " << cmd_y); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "z_err: " << err_z); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "z_cmd: " << cmd_z); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "###################"); 
+    
 
 
     }
