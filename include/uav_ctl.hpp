@@ -22,6 +22,8 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix.h"
 #include "tf2_msgs/msg/tf_message.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
@@ -49,7 +51,6 @@ class UavCtl: public rclcpp::Node
 
         std::string ns_; 
 
-
     private: 
 
         // publishers --> TODO: Change names!
@@ -75,7 +76,9 @@ class UavCtl: public rclcpp::Node
         rclcpp::TimerBase::SharedPtr                                        timer_;
 
         // controllers
-        jlbpid::Controller                                                  controller_; 
+        jlbpid::Controller                                                  v_controller_; 
+        jlbpid::Controller                                                  h_controller_; 
+        jlbpid::Controller                                                  y_controller_; 
         jlbpid::PID                                                         pid; 
 
         // tf_buffers
@@ -86,19 +89,23 @@ class UavCtl: public rclcpp::Node
 
         int                                                                 operationMode;
         bool                                                                nodeInitialized = false; 
-        geometry_msgs::msg::PoseStamped::SharedPtr                          currentPose_; 
-        geometry_msgs::msg::PoseStamped::SharedPtr                          wantedPose_; 
+        bool                                                                cmdReciv = false; 
+        geometry_msgs::msg::PoseStamped                                     currPose_; 
+        geometry_msgs::msg::PoseStamped                                     cmdPose_; 
+        geometry_msgs::msg::Vector3                                         currEuler_; 
 
-        // init method
+
+        // init methods
         void init(); 
+        void init_ctl(); 
 
         // timer callback 
         void timer_callback(); 
 
         // sub callbacks
-        void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const; 
-        void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const; 
-        void cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const; 
+        void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
+        void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
+        void cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
 
         // service callbacks
         bool close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 

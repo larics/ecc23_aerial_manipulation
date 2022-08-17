@@ -1,4 +1,3 @@
-
 #include "uav_ctl.hpp"
 
 
@@ -8,6 +7,10 @@ UavCtl::UavCtl(): Node("uav_ctl")
  
     // Initalize 
     init(); 
+
+    init_ctl(); 
+
+    nodeInitialized = true; 
 }
 
 void UavCtl::init()
@@ -15,6 +18,7 @@ void UavCtl::init()
 
     // Take node namespace as uav_name (easiest way to capture ns param)
     ns_ = this->get_namespace(); 	
+
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1); 
@@ -33,43 +37,71 @@ void UavCtl::init()
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
-    // tf buffer
-    //amSTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock()); 
-    // tf listener
-    //amSTransformListener = std::make_shared<tf2_ros::TransformListener>(*amSTfBuffer);
-
+    // Controller -> set pid with (kp, ki, kd) gains    
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controller!");
-    // set pid with (kp, ki, kd) gains    
-    pid.kp = 5; pid.ki = 0; pid.kd = 0; controller_.set_pid(std::move(pid)); 
-    controller_.set_plant_state(0); 
-    
-    RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
 
-    nodeInitialized = true; 
+    // Initial position
+    cmdPose_.pose.position.x = 0.0; cmdPose_.pose.position.y = 0.0; cmdPose_.pose.position.z = 0.5; 
+
+    // Initial orientation
+    cmdPose_.pose.orientation.x = 0.0; cmdPose_.pose.orientation.y = 0.0; 
+    cmdPose_.pose.orientation.z = 0.0; cmdPose_.pose.orientation.w = 1.0; 
+
     // possible to use milliseconds and duration
     std::chrono::duration<double> SYSTEM_DT(0.1);
     timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavCtl::timer_callback, this)); 
 
+    RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
+
 }
 
-void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const
+void UavCtl::init_ctl()
+{
+    // Height controller
+    pid.kp = -1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    v_controller_.set_pid(std::move(pid)); 
+    v_controller_.set_plant_state(0);
+
+    // Horizontal controller
+    pid.kp = 2.0; pid.ki = 0.0; pid.kd = 0.0; 
+    h_controller_.set_pid(std::move(pid)); 
+    h_controller_.set_plant_state(0);
+
+    // Yaw controller
+    pid.kp = 1.0; 
+    y_controller_.set_pid(std::move(pid)); 
+    y_controller_.set_plant_state(0);  
+
+}
+
+void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
     // TODO: Fix this part!
-    //currentPose_->header.frame_id = msg->header.frame_id; 
-    //currentPose_->pose.position.z = msg->pose.position.z; 
-    int a; 
+    currPose_.header.frame_id = msg->header.frame_id; 
+    currPose_.pose.position.z = msg->pose.position.z;
+
+    tf2::Quaternion q(currPose_.pose.orientation.x, 
+                      currPose_.pose.orientation.y, 
+                      currPose_.pose.orientation.z, 
+                      currPose_.pose.orientation.w); 
+    
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+
 }
 
-void UavCtl::cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) const
+void UavCtl::cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
     // TODO: Fix this part!
-    //wantedPose_->header.frame_id = msg->header.frame_id; 
-    //wantedPose_->pose.position.z = msg->pose.position.z; 
-    int b; 
+    cmdPose_.header.frame_id = msg->header.frame_id; 
+    cmdPose_.pose.position.z = msg->pose.position.z; 
+    cmdReciv = true; 
 
 }
 
-void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
+void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) 
 {       
 
         geometry_msgs::msg::TransformStamped transform_stamped;
@@ -112,12 +144,10 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) const
 
             }; 
         }
-        
-        /*
         // publish warning if there's no pose estimate
         if(!pose_estimate && check_complete){
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
-        }*/
+        }
 
 }
 
@@ -180,17 +210,40 @@ void UavCtl::timer_callback()
 {
     // TODO: Add control here for PID control :) 
     // get current uav_state
+    double state; 
 
     // this PID is used only for controlling z axis
-    controller_.set_setpoint(100); 
-    controller_.update();
-    double state; 
-    state = controller_.get_control_effort();
+    if (nodeInitialized && cmdReciv)
+    {
+        // send commands only if command is recieved
+        RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
 
-    
-    RCLCPP_INFO_STREAM(this->get_logger(), "State is: " << state); 
-    //RCLCPP_INFO_STREAM(this->get_logger(), "Timer works!");
+        // feedback loop --> should be included in PID
+        float err_x; float err_y; float err_z; 
+        err_z = cmdPose_.pose.position.z - currPose_.pose.position.z; 
+        // TODO: Add yaw to calculation
+        err_x = cmdPose_.pose.position.x - currPose_.pose.position.x; 
+        err_y = cmdPose_.pose.position.y - currPose_.pose.position.y; 
+        
+        cmd_x = h_controller_.update(err_x);         
+        cmd_y = h_controller_.update(err_y); 
+        cmd_z = v_controller_.update(err_z);
+        //cmd_yaw = yaw_controller_.update(err_yaw); 
 
+        geometry_msgs::msg::Twist cmdVel_;
+        cmdVel_.linear.x = cmd_x; 
+        cmdVel_.linear.y = cmd_y; 
+        cmdVel_.linear.z = cmd_z; 
+
+        cmdVel_.angular.x = 0; 
+        cmdVel_.angular.y = 0; 
+        cmdVel_.angular.z = cmd_yaw;  
+
+        cmdVelPub_->publish(cmdVel_); 
+        
+        RCLCPP_INFO_STREAM(this->get_logger(), "State is: " << state); 
+
+    }
 
 }   
 

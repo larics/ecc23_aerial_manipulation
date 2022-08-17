@@ -130,8 +130,9 @@ Run build again.
 - [x] *Add method for joystick control (reference generation) --> create separate node for joy control*  
 - [x] *Add namespaceing to enable easier UAV ctl --> on node level*
 - [x] Fetching pose static 
-- [ ] *Add position control* 
-- [ ] Add clients to joy control 
+- [x] Added height control 
+- [x] Add clients to joy control
+- [ ] Add horizontal control  
 - [ ] Think of relative vs. global position control 
 - [ ] Check suction mechanism 
 - [ ] Tune controllers 
