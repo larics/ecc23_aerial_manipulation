@@ -10,7 +10,11 @@ UavCtl::UavCtl(): Node("uav_ctl")
 
     init_ctl(); 
 
+    roll = 0.0; 
+    pitch = 0.0; 
+    //yaw = 0.0;
     nodeInitialized = true; 
+
 }
 
 void UavCtl::init()
@@ -37,9 +41,6 @@ void UavCtl::init()
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
-    // Controller -> set pid with (kp, ki, kd) gains    
-    RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controller!");
-
     // Initial position
     cmdPose_.pose.position.x = 0.0; cmdPose_.pose.position.y = 0.0; cmdPose_.pose.position.z = 0.5; 
 
@@ -57,27 +58,35 @@ void UavCtl::init()
 
 void UavCtl::init_ctl()
 {
+
+    // Controller -> set pid with (kp, ki, kd) gains    
+    RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
+    
     // Height controller
-    pid.kp = -1.0; pid.ki = 0.0; pid.kd = 0.0; 
-    v_controller_.set_pid(std::move(pid)); 
-    v_controller_.set_plant_state(0);
+    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    z_controller_.set_pid(std::move(pid)); 
+    z_controller_.set_plant_state(0);
 
-    // Horizontal controller
-    pid.kp = 2.0; pid.ki = 0.0; pid.kd = 0.0; 
-    h_controller_.set_pid(std::move(pid)); 
-    h_controller_.set_plant_state(0);
+    // Horizontal - x controller
+    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    x_controller_.set_pid(std::move(pid)); 
+    x_controller_.set_plant_state(0);
 
-    // Yaw controller
-    pid.kp = 1.0; 
+    // Horizontal - y controller 
+    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0;  
     y_controller_.set_pid(std::move(pid)); 
     y_controller_.set_plant_state(0);  
+
+    // yaw controller; 
 
 }
 
 void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
     // TODO: Fix this part!
-    currPose_.header.frame_id = msg->header.frame_id; 
+    currPose_.header.frame_id = msg->header.frame_id;
+    currPose_.pose.position.x = msg->pose.position.x;  
+    currPose_.pose.position.y = msg->pose.position.y;
     currPose_.pose.position.z = msg->pose.position.z;
 
     tf2::Quaternion q(currPose_.pose.orientation.x, 
@@ -86,8 +95,10 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
                       currPose_.pose.orientation.w); 
     
     tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
+    double roll, pitch, yaw; 
     m.getRPY(roll, pitch, yaw);
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 
 
 }
@@ -96,6 +107,8 @@ void UavCtl::cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr 
 {   
     // TODO: Fix this part!
     cmdPose_.header.frame_id = msg->header.frame_id; 
+    cmdPose_.pose.position.x = msg->pose.position.x; 
+    cmdPose_.pose.position.y = msg->pose.position.y; 
     cmdPose_.pose.position.z = msg->pose.position.z; 
     cmdReciv = true; 
 
@@ -210,7 +223,7 @@ void UavCtl::timer_callback()
 {
     // TODO: Add control here for PID control :) 
     // get current uav_state
-    double state; 
+    double cmd_x; double cmd_y; double cmd_z; double cmd_yaw; 
 
     // this PID is used only for controlling z axis
     if (nodeInitialized && cmdReciv)
@@ -219,29 +232,44 @@ void UavCtl::timer_callback()
         RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
 
         // feedback loop --> should be included in PID
-        float err_x; float err_y; float err_z; 
+        float err_x; float err_y; float err_z; float err_yaw; 
         err_z = cmdPose_.pose.position.z - currPose_.pose.position.z; 
         // TODO: Add yaw to calculation
-        err_x = cmdPose_.pose.position.x - currPose_.pose.position.x; 
-        err_y = cmdPose_.pose.position.y - currPose_.pose.position.y; 
-        
-        cmd_x = h_controller_.update(err_x);         
-        cmd_y = h_controller_.update(err_y); 
-        cmd_z = v_controller_.update(err_z);
-        //cmd_yaw = yaw_controller_.update(err_yaw); 
+        err_x =  currPose_.pose.position.x - cmdPose_.pose.position.x; 
+        err_y =  currPose_.pose.position.y - cmdPose_.pose.position.y; 
+        //rr_yaw =  0 - yaw; 
+        x_controller_.set_plant_state(currPose_.pose.position.x); 
+        x_controller_.set_setpoint(cmdPose_.pose.position.x); 
+        x_controller_.update(); 
+
+        y_controller_.set_plant_state(currPose_.pose.position.y); 
+        y_controller_.set_setpoint(cmdPose_.pose.position.y);
+        y_controller_.update();
+
+        z_controller_.set_plant_state(currPose_.pose.position.z); 
+        z_controller_.set_setpoint(cmdPose_.pose.position.z);  
+        z_controller_.update();
+        //cmd_yaw = y_controller_.update(err_yaw); 
 
         geometry_msgs::msg::Twist cmdVel_;
-        cmdVel_.linear.x = cmd_x; 
-        cmdVel_.linear.y = cmd_y; 
-        cmdVel_.linear.z = cmd_z; 
+        cmdVel_.linear.x = x_controller_.get_control_effort(); 
+        cmdVel_.linear.y = y_controller_.get_control_effort(); 
+        cmdVel_.linear.z = z_controller_.get_control_effort(); 
 
         cmdVel_.angular.x = 0; 
         cmdVel_.angular.y = 0; 
-        cmdVel_.angular.z = cmd_yaw;  
+        cmdVel_.angular.z = 0;  
 
         cmdVelPub_->publish(cmdVel_); 
-        
-        RCLCPP_INFO_STREAM(this->get_logger(), "State is: " << state); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "###################"); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "x_err: " << currPose_.pose.position.x); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "x_cmd: " << cmd_x); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "y_err: " << currPose_.pose.position.y); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "y_cmd: " << cmd_y); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "z_err: " << err_z); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "z_cmd: " << cmd_z); 
+        RCLCPP_INFO_STREAM(this->get_logger(), "###################"); 
+
 
     }
 

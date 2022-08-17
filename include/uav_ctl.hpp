@@ -23,7 +23,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "tf2/LinearMath/Quaternion.h"
-#include "tf2/LinearMath/Matrix.h"
+#include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
@@ -76,9 +76,10 @@ class UavCtl: public rclcpp::Node
         rclcpp::TimerBase::SharedPtr                                        timer_;
 
         // controllers
-        jlbpid::Controller                                                  v_controller_; 
-        jlbpid::Controller                                                  h_controller_; 
-        jlbpid::Controller                                                  y_controller_; 
+        jlbpid::Controller                                                  x_controller_; 
+        jlbpid::Controller                                                  y_controller_;
+        jlbpid::Controller                                                  z_controller_; 
+        jlbpid::Controller                                                  yaw_controller_;  
         jlbpid::PID                                                         pid; 
 
         // tf_buffers
@@ -90,6 +91,7 @@ class UavCtl: public rclcpp::Node
         int                                                                 operationMode;
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
+        float                                                               roll, pitch, yaw;
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
