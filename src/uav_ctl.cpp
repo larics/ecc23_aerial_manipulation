@@ -42,7 +42,9 @@ void UavCtl::init()
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
     // Initial position
-    cmdPose_.pose.position.x = 0.0; cmdPose_.pose.position.y = 0.0; cmdPose_.pose.position.z = 0.5; 
+    cmdPose_.pose.position.x = 0.0; 
+    cmdPose_.pose.position.y = 0.0; 
+    cmdPose_.pose.position.z = 0.5; 
 
     // Initial orientation
     cmdPose_.pose.orientation.x = 0.0; cmdPose_.pose.orientation.y = 0.0; 
@@ -63,20 +65,27 @@ void UavCtl::init_ctl()
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
     
     // Height controller
-    pid.kp = 1.0; pid.ki = 0.01; pid.kd = 0.05; 
+    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
     z_controller_.set_pid(std::move(pid)); 
     z_controller_.set_plant_state(0);
 
     // Horizontal - x controller
-    pid.kp = 0.5; pid.ki = 0.01; pid.kd = 0.05; 
+    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
     x_controller_.set_pid(std::move(pid)); 
     x_controller_.set_plant_state(0);
 
     // Horizontal - y controller 
-    pid.kp = 0.5; pid.ki = 0.01; pid.kd = 0.05;  
+    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0;  
     y_controller_.set_pid(std::move(pid)); 
     y_controller_.set_plant_state(0);  
 
+    /*
+    Gains 
+    ----------
+    How to configure gains for normal flight? 
+    Small I and small D lead reference to instability? 
+    Which PID to use? 
+    */
     // yaw controller; 
 
 }
@@ -98,7 +107,8 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
     double roll, pitch, yaw; 
     m.getRPY(roll, pitch, yaw);
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+    // Output yaw (needed for pose estimation)
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 
 
 }
@@ -144,6 +154,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
                 pose_estimate = true; 
                 geometry_msgs::msg::PoseStamped msg; 
 
+                // This can also be ground truth pose
                 msg.header = transform_msg.header; 
                 msg.header.frame_id = child_frame_id; 
                 msg.pose.position.x = transform_msg.transform.translation.x; 
@@ -229,43 +240,47 @@ void UavCtl::timer_callback()
     if (nodeInitialized && cmdReciv)
     {
         // send commands only if command is recieved
-        RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
 
         // feedback loop --> should be included in PID
         float err_x; float err_y; float err_z; float err_yaw; 
         err_z = cmdPose_.pose.position.z - currPose_.pose.position.z; 
         // TODO: Add yaw to calculation
-        err_x =  currPose_.pose.position.x - cmdPose_.pose.position.x; 
-        err_y =  currPose_.pose.position.y - cmdPose_.pose.position.y; 
+        err_x = currPose_.pose.position.x - cmdPose_.pose.position.x; 
+        err_y = currPose_.pose.position.y - cmdPose_.pose.position.y; 
         
-        // threading issue
+        // threading issue --> add to methods maybe :) 
         x_controller_.set_plant_state(currPose_.pose.position.x); 
         x_controller_.set_setpoint(cmdPose_.pose.position.x); 
         x_controller_.update(); 
+        cmd_x = x_controller_.get_control_effort(); 
 
         y_controller_.set_plant_state(currPose_.pose.position.y); 
         y_controller_.set_setpoint(cmdPose_.pose.position.y);
         y_controller_.update();
+        cmd_y = y_controller_.get_control_effort(); 
 
         z_controller_.set_plant_state(currPose_.pose.position.z); 
         z_controller_.set_setpoint(cmdPose_.pose.position.z);  
         z_controller_.update();
-        
-        //cmd_yaw = y_controller_.update(err_yaw); 
+        cmd_z = z_controller_.get_control_effort(); 
 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort()); 
+        
+    
         geometry_msgs::msg::Twist cmdVel_;
-        cmdVel_.linear.x = x_controller_.get_control_effort(); 
-        cmdVel_.linear.y = y_controller_.get_control_effort(); 
-        cmdVel_.linear.z = z_controller_.get_control_effort(); 
+        cmdVel_.linear.x = cmd_x; 
+        cmdVel_.linear.y = cmd_y; 
+        cmdVel_.linear.z = cmd_z; 
 
         cmdVel_.angular.x = 0; 
         cmdVel_.angular.y = 0; 
-        cmdVel_.angular.z = 0;  
+        cmdVel_.angular.z = 0.0;  
 
         cmdVelPub_->publish(cmdVel_); 
     
-
-
     }
 
 }   

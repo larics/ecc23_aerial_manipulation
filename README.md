@@ -132,8 +132,10 @@ Run build again.
 - [x] Fetching pose static 
 - [x] Added height control 
 - [x] Add clients to joy control
-- [ ] Add horizontal control  
-- [ ] Think of relative vs. global position control 
+- [x] Add horizontal control
+- [ ] Add and try simple state machine 
+- [ ] Add yaw control   
+- [ ] Think of relative vs. global position control --> changing frame of reference 
 - [ ] Check suction mechanism 
 - [ ] Tune controllers 
 - [ ] Enable development on server 

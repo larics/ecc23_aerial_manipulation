@@ -38,16 +38,39 @@ def launch(context, *args, **kwargs):
         launch_arguments = {'ign_args': "-v 50 -r empty_platform.sdf"}.items()) 
 
     #spawn_small_aerial_manipulator
-    spawn_small_aerial_manipulator = IncludeLaunchDescription(
+    spawn_small_aerial_manipulator1 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('mbzirc_ign'), 'launch'), 
         '/spawn.launch.py']), 
         launch_arguments = {
-                'name': 'am_S', 
+                'name': 'uav1', 
                 'world': 'empty_platform', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-1', 
+                'z': '0.5', 
+                'R': '0', 
+                'P': '0', 
+                'Y': '0', 
+                'gripper':'mbzirc_suction_gripper', 
+                #'slot0':'mbzirc_hd_camera', 
+                #'slot0' : 'mbzirc_rgbd_camera',
+                'type':'uav2', 
+                'flightTime': '6000', 
+                #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
+                }.items())
+
+    #spawn_small_aerial_manipulator
+    spawn_small_aerial_manipulator2= IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+        get_package_share_directory('mbzirc_ign'), 'launch'), 
+        '/spawn.launch.py']), 
+        launch_arguments = {
+                'name': 'uav2', 
+                'world': 'empty_platform', 
+                'model': 'mbzirc_quadrotor',
+                'x': '0', 
+                'y': '-4', 
                 'z': '0.5', 
                 'R': '0', 
                 'P': '0', 
@@ -65,7 +88,7 @@ def launch(context, *args, **kwargs):
         get_package_share_directory('mbzirc_ign'), 'launch'), 
         '/spawn.launch.py']),
         launch_arguments = {
-                'name' : 'uav2', 
+                'name' : 'uav3', 
                 'world': 'empty_platform', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-2.5', 
@@ -87,7 +110,7 @@ def launch(context, *args, **kwargs):
         get_package_share_directory('mbzirc_ign'), 'launch'), 
         '/spawn.launch.py']),
         launch_arguments = {
-                'name' : 'uav1', 
+                'name' : 'uav4', 
                 'world': 'empty_platform', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-5.0', 
@@ -148,6 +171,22 @@ def launch(context, *args, **kwargs):
         output="screen"
     )
 
+    # Control node for large UAV (example)
+    uav3_ctl_node = Node(
+        package="mbzirc_aerial_manipulation", 
+        executable="uav_ctl", 
+        namespace="uav3", 
+        output="screen"
+    )
+
+    # Control node for large UAV (example)
+    uav4_ctl_node = Node(
+        package="mbzirc_aerial_manipulation", 
+        executable="uav_ctl", 
+        namespace="uav4", 
+        output="screen"
+    )
+
     uav_joy_node = Node(
         package="mbzirc_aerial_manipulation", 
         executable="uav_joy", 
@@ -157,7 +196,8 @@ def launch(context, *args, **kwargs):
     # Add spawning of UAVs
     return [ign_gazebo,
             joy_node,  
-            spawn_small_aerial_manipulator, 
+            spawn_small_aerial_manipulator1,
+            spawn_small_aerial_manipulator2,  
             spawn_large_aerial_manipulator1,
             spawn_large_aerial_manipulator2, 
             #ros2_ign_score_bridge, 
@@ -165,7 +205,10 @@ def launch(context, *args, **kwargs):
             #ros2_ign_phase_bridge,
             uav_joy_node, 
             uav1_ctl_node, 
-            uav2_ctl_node]
+            uav2_ctl_node,
+            uav3_ctl_node, 
+            uav4_ctl_node, 
+            ]
 
 def generate_launch_description():
     return LaunchDescription([
