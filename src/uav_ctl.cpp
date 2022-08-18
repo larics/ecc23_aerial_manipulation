@@ -163,10 +163,12 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
                 msg.pose.orientation = transform_msg.transform.rotation; 
 
                 poseGtPub_->publish(msg); 
-                check_complete = true; 
                 break; 
 
             }; 
+
+            check_complete = true; 
+
         }
         // publish warning if there's no pose estimate
         if(!pose_estimate && check_complete){
