@@ -29,6 +29,7 @@ void UavCtl::init()
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
+    absPoseDistPub_        = this->create_publisher<geometry_msgs::msg::Pose>(ns_ + std::string("/pose_dist"), 1); 
     
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -231,12 +232,29 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
 
 
 }
+
+void UavCtl::get_pose_dist()
+{
+
+    poseDist_.position.x = std::abs(cmdPose_.pose.position.x - currPose_.pose.position.x);
+    poseDist_.position.y = std::abs(cmdPose_.pose.position.y - currPose_.pose.position.y);
+    poseDist_.position.z = std::abs(cmdPose_.pose.position.z - currPose_.pose.position.z);
+    // TODO: Figure out what happens to orientation
+    poseDist_.orientation.x = std::abs(cmdPose_.pose.orientation.x - currPose_.pose.orientation.x);
+    poseDist_.orientation.y = std::abs(cmdPose_.pose.orientation.y - currPose_.pose.orientation.y);
+    poseDist_.orientation.z = std::abs(cmdPose_.pose.orientation.z - currPose_.pose.orientation.z);
+    poseDist_.orientation.w = std::abs(cmdPose_.pose.orientation.w - currPose_.pose.orientation.w);
+
+
+}
+
 // Timer callback executes every 1.0/0.2 (5s)
 void UavCtl::timer_callback()
 {
     // TODO: Add control here for PID control :) 
     // get current uav_state
     double cmd_x; double cmd_y; double cmd_z; double cmd_yaw; 
+    geometry_msgs::msg::Pose msg; 
 
     // this PID is used only for controlling z axis
     if (nodeInitialized && cmdReciv)
@@ -244,12 +262,9 @@ void UavCtl::timer_callback()
         // send commands only if command is recieved
         //RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
 
-        // feedback loop --> should be included in PID
-        float err_x; float err_y; float err_z; float err_yaw; 
-        err_z = cmdPose_.pose.position.z - currPose_.pose.position.z; 
-        // TODO: Add yaw to calculation
-        err_x = currPose_.pose.position.x - cmdPose_.pose.position.x; 
-        err_y = currPose_.pose.position.y - cmdPose_.pose.position.y; 
+        // Publish current pose difference
+        get_pose_dist(); 
+        absPoseDistPub_->publish(poseDist_);
         
         // threading issue --> add to methods maybe :) 
         x_controller_.set_plant_state(currPose_.pose.position.x); 
@@ -269,8 +284,7 @@ void UavCtl::timer_callback()
 
         //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
         //RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort()); 
-        
+        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());         
     
         geometry_msgs::msg::Twist cmdVel_;
         cmdVel_.linear.x = cmd_x; 

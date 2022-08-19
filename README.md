@@ -135,6 +135,7 @@ Run build again.
 - [x] Add horizontal control
 - [ ] Add and try simple state machine 
 - [ ] Add yaw control   
+- [ ] Figure out states for UAV
 - [ ] Think of relative vs. global position control --> changing frame of reference 
 - [ ] Check suction mechanism 
 - [ ] Tune controllers 

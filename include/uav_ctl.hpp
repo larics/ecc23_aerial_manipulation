@@ -53,7 +53,8 @@ class UavCtl: public rclcpp::Node
 
     private: 
 
-        // publishers --> TODO: Change names!
+        // publishers 
+        rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr              absPoseDistPub_; 
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr             cmdVelPub_; 
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       poseGtPub_; 
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                gripperCmdPosLeftPub_; 
@@ -94,6 +95,7 @@ class UavCtl: public rclcpp::Node
         float                                                               roll, pitch, yaw;
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
+        geometry_msgs::msg::Pose                                            poseDist_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
 
 
@@ -103,6 +105,9 @@ class UavCtl: public rclcpp::Node
 
         // timer callback 
         void timer_callback(); 
+
+        // void get_pose
+        void get_pose_dist(); 
 
         // sub callbacks
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
