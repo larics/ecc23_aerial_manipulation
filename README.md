@@ -77,10 +77,12 @@ Short term plan is to enable odometry to be able to test controllers during tuni
 After we make sure that controllers are tuned correctly, try to lift objects, and 
 check with other teams how is the status of positional control. 
 
+It's not able to use odometry plugin (`pose_static` topic is used for localization). 
+
 
 Parts of the system that need to be addressed. 
-- control 
-- state machine
+- control --> PIDs added, yaw fix 
+- state machine --> SMACC2 can be used
 - perception 
 - relative localization
 - UAV cooperation 
@@ -133,7 +135,7 @@ Run build again.
 - [x] Added height control 
 - [x] Add clients to joy control
 - [x] Add horizontal control
-- [ ] Add and try simple state machine 
+- [x] Add and try [simple state machine](https://github.com/fzoric8/sm_aerial_manipulator)  
 - [ ] Add yaw control   
 - [ ] Figure out states for UAV
 - [ ] Think of relative vs. global position control --> changing frame of reference 
