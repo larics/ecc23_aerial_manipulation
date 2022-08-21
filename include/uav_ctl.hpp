@@ -92,7 +92,7 @@ class UavCtl: public rclcpp::Node
         int                                                                 operationMode;
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
-        float                                                               roll, pitch, yaw;
+        float                                                               roll, pitch, currentYaw_; 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::Pose                                            poseDist_; 

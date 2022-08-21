@@ -66,7 +66,7 @@ void UavCtl::init_ctl()
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
     
     // Height controller
-    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = 1.0; pid.ki = 0.01; pid.kd = 0.0; 
     z_controller_.set_pid(std::move(pid)); 
     z_controller_.set_plant_state(0);
 
@@ -79,6 +79,10 @@ void UavCtl::init_ctl()
     pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0;  
     y_controller_.set_pid(std::move(pid)); 
     y_controller_.set_plant_state(0);  
+
+    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    yaw_controller_.set_pid(std::move(pid)); 
+    yaw_controller_.set_plant_state(0); 
 
     /*
     Gains 
@@ -98,6 +102,10 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
     currPose_.pose.position.x = msg->pose.position.x;  
     currPose_.pose.position.y = msg->pose.position.y;
     currPose_.pose.position.z = msg->pose.position.z;
+    currPose_.pose.orientation.x = msg->pose.orientation.x; 
+    currPose_.pose.orientation.y = msg->pose.orientation.y; 
+    currPose_.pose.orientation.z = msg->pose.orientation.z; 
+    currPose_.pose.orientation.w = msg->pose.orientation.w; 
 
     tf2::Quaternion q(currPose_.pose.orientation.x, 
                       currPose_.pose.orientation.y, 
@@ -105,23 +113,31 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
                       currPose_.pose.orientation.w); 
     
     tf2::Matrix3x3 m(q);
+
+    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
     double roll, pitch, yaw; 
-    m.getRPY(roll, pitch, yaw);
+    m.getRPY(roll, pitch, yaw);   
+
+    currentYaw_ = yaw; 
+
 
     // Output yaw (needed for pose estimation)
-    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 
 
 }
 
 void UavCtl::cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
-    // TODO: Fix this part!
+    // TODO: Fix this part! --> missess orientation check
+    // Add time check to publish poseDist_ message if there's no command for 5 secs
     cmdPose_.header.frame_id = msg->header.frame_id; 
     cmdPose_.pose.position.x = msg->pose.position.x; 
     cmdPose_.pose.position.y = msg->pose.position.y; 
     cmdPose_.pose.position.z = msg->pose.position.z; 
     cmdReciv = true; 
+
+    
 
 }
 
@@ -245,7 +261,6 @@ void UavCtl::get_pose_dist()
     poseDist_.orientation.z = std::abs(cmdPose_.pose.orientation.z - currPose_.pose.orientation.z);
     poseDist_.orientation.w = std::abs(cmdPose_.pose.orientation.w - currPose_.pose.orientation.w);
 
-
 }
 
 // Timer callback executes every 1.0/0.2 (5s)
@@ -259,8 +274,6 @@ void UavCtl::timer_callback()
     // this PID is used only for controlling z axis
     if (nodeInitialized && cmdReciv)
     {
-        // send commands only if command is recieved
-        //RCLCPP_INFO_STREAM(this->get_logger(), "Command recieved: "<< cmdPose_.pose.position.z); 
 
         // Publish current pose difference
         get_pose_dist(); 
@@ -282,13 +295,18 @@ void UavCtl::timer_callback()
         z_controller_.update();
         cmd_z = z_controller_.get_control_effort(); 
 
+        // How does yaw affect x, y command 
+        //z_controller_.set_plant_state(currentYaw_);
+        //z_controller_.set_setpoint(wantedYaw_); 
+        //cmd_yaw = z_controller_.get_control_effort(); 
+
         //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
         //RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
         //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());         
     
         geometry_msgs::msg::Twist cmdVel_;
-        cmdVel_.linear.x = cmd_x; 
-        cmdVel_.linear.y = cmd_y; 
+        cmdVel_.linear.x = cmd_x; //* sin(currentYaw_); 
+        cmdVel_.linear.y = cmd_y; //* cos(currentYaw_); 
         cmdVel_.linear.z = cmd_z; 
 
         cmdVel_.angular.x = 0; 
