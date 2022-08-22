@@ -30,11 +30,22 @@ void UavCtl::init()
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
     absPoseDistPub_        = this->create_publisher<geometry_msgs::msg::Pose>(ns_ + std::string("/pose_dist"), 1); 
-    
+    // suction_related
+    fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/all"), 1); 
+
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
     currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_ref"), 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
+    // suction_related
+    bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/bottom"), 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
+    leftContactSub_        = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/left"), 1, std::bind(&UavCtl::left_contact_callback, this, _1)); 
+    rightContactSub_       = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/right"), 1, std::bind(&UavCtl::right_contact_callback, this, _1)); 
+    topContactSub_         = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/top"), 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
+    centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/center"), 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
+
+
+    // TODO: Add subscribers for suction gripper
 
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
@@ -50,6 +61,9 @@ void UavCtl::init()
     // Initial orientation
     cmdPose_.pose.orientation.x = 0.0; cmdPose_.pose.orientation.y = 0.0; 
     cmdPose_.pose.orientation.z = 0.0; cmdPose_.pose.orientation.w = 1.0; 
+
+    // 
+    bottomC = false; topC = false; leftC = false; rightC = false; centerC = false; 
 
     // possible to use milliseconds and duration
     std::chrono::duration<double> SYSTEM_DT(0.1);
@@ -122,7 +136,7 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
 
 
     // Output yaw (needed for pose estimation)
-    RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 
 
 }
@@ -192,6 +206,36 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
         }
 
+}
+
+void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved bottom suction"); 
+    bottomC = msg->data; 
+}
+
+void UavCtl::left_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{   
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved left suction"); 
+    leftC = msg->data; 
+}
+
+void UavCtl::right_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{   
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved right suction"); 
+    rightC = msg->data; 
+}
+
+void UavCtl::center_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved center suction"); 
+    centerC = msg->data; 
+}
+
+void UavCtl::top_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved top suction"); 
+    topC = msg->data; 
 }
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -314,6 +358,30 @@ void UavCtl::timer_callback()
         cmdVel_.angular.z = 0.0;  
 
         cmdVelPub_->publish(cmdVel_); 
+
+        std_msgs::msg::Bool suction_msg; 
+        // Publish contacts if all 5 are touching object
+        RCLCPP_INFO_STREAM(this->get_logger(), "bottom: " << bottomC);
+        RCLCPP_INFO_STREAM(this->get_logger(), "right: " << rightC);
+        RCLCPP_INFO_STREAM(this->get_logger(), "left: " << leftC);
+        RCLCPP_INFO_STREAM(this->get_logger(), "top: " << topC);
+        RCLCPP_INFO_STREAM(this->get_logger(), "center: " << centerC); 
+
+        if(bottomC && rightC && leftC && topC && centerC)
+        {
+            suction_msg.data = true; 
+            fullSuctionContactPub_->publish(suction_msg); 
+            RCLCPP_INFO(this->get_logger(),"Suction ready!");    
+
+
+        }else{
+            suction_msg.data = false; 
+            fullSuctionContactPub_->publish(suction_msg); 
+            RCLCPP_INFO(this->get_logger(),"Suction ready!");  
+
+        }
+            
+            
     
     }
 
