@@ -62,7 +62,7 @@ void UavCtl::init()
     cmdPose_.pose.orientation.x = 0.0; cmdPose_.pose.orientation.y = 0.0; 
     cmdPose_.pose.orientation.z = 0.0; cmdPose_.pose.orientation.w = 1.0; 
 
-    // 
+    // Set contacts on false
     bottomC = false; topC = false; leftC = false; rightC = false; centerC = false; 
 
     // possible to use milliseconds and duration
@@ -316,9 +316,9 @@ void UavCtl::timer_callback()
     geometry_msgs::msg::Pose msg; 
 
     // this PID is used only for controlling z axis
-    if (nodeInitialized && cmdReciv)
-    {
+    if (nodeInitialized){
 
+        if(cmdReciv){
         // Publish current pose difference
         get_pose_dist(); 
         absPoseDistPub_->publish(poseDist_);
@@ -357,15 +357,12 @@ void UavCtl::timer_callback()
         cmdVel_.angular.y = 0; 
         cmdVel_.angular.z = 0.0;  
 
-        cmdVelPub_->publish(cmdVel_); 
+        cmdVelPub_->publish(cmdVel_);
+        }
 
         std_msgs::msg::Bool suction_msg; 
         // Publish contacts if all 5 are touching object
-        RCLCPP_INFO_STREAM(this->get_logger(), "bottom: " << bottomC);
-        RCLCPP_INFO_STREAM(this->get_logger(), "right: " << rightC);
-        RCLCPP_INFO_STREAM(this->get_logger(), "left: " << leftC);
-        RCLCPP_INFO_STREAM(this->get_logger(), "top: " << topC);
-        RCLCPP_INFO_STREAM(this->get_logger(), "center: " << centerC); 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "bottom: " << bottomC);
 
         if(bottomC && rightC && leftC && topC && centerC)
         {
@@ -373,17 +370,13 @@ void UavCtl::timer_callback()
             fullSuctionContactPub_->publish(suction_msg); 
             RCLCPP_INFO(this->get_logger(),"Suction ready!");    
 
-
         }else{
             suction_msg.data = false; 
             fullSuctionContactPub_->publish(suction_msg); 
-            RCLCPP_INFO(this->get_logger(),"Suction ready!");  
-
-        }
-            
-            
-    
-    }
+            //RCLCPP_INFO(this->get_logger(),"Suction not ready!");  
+        }          
+       
+    } 
 
 }   
 
