@@ -89,6 +89,7 @@ class UavCtl: public rclcpp::Node
         jlbpid::Controller                                                  z_controller_; 
         jlbpid::Controller                                                  yaw_controller_;  
         jlbpid::PID                                                         pid; 
+        jlbpid::Config                                                      config; 
 
         // tf_buffers
         std::unique_ptr<tf2_ros::Buffer>                                    amSTfBuffer{nullptr};

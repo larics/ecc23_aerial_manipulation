@@ -35,7 +35,7 @@ def launch(context, *args, **kwargs):
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('ros_ign_gazebo'), 'launch'),
         '/ign_gazebo.launch.py']),
-        launch_arguments = {'ign_args': "-v 50 -r empty_platform.sdf"}.items()) 
+        launch_arguments = {'ign_args': "-v 4 -r simple_demo_manip.sdf"}.items()) 
 
     #spawn_small_aerial_manipulator
     spawn_small_aerial_manipulator1 = IncludeLaunchDescription(
@@ -44,7 +44,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']), 
         launch_arguments = {
                 'name': 'uav1', 
-                'world': 'empty_platform', 
+                'world': 'simple_demo_manip', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-1', 
@@ -67,7 +67,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']), 
         launch_arguments = {
                 'name': 'uav2', 
-                'world': 'empty_platform', 
+                'world': 'simple_demo_manip', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-4', 
@@ -89,7 +89,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']),
         launch_arguments = {
                 'name' : 'uav3', 
-                'world': 'empty_platform', 
+                'world': 'simple_demo_manip', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-2.5', 
                 'y': '-1.9',
@@ -111,7 +111,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']),
         launch_arguments = {
                 'name' : 'uav4', 
-                'world': 'empty_platform', 
+                'world': 'simple_demo_manip', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-5.0', 
                 'y': '-1.9',

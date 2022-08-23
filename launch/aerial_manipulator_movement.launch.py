@@ -14,6 +14,7 @@
 # limitations under the License.
 
 
+from turtle import position
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
@@ -32,10 +33,6 @@ import os
 
 def launch(context, *args, **kwargs):
 
-    ns = DeclareLaunchArgument(
-        "ns", default_value=TextSubstitution(text="uav1")
-    )
-
     ign_gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('ros_ign_gazebo'), 'launch'),
@@ -48,16 +45,16 @@ def launch(context, *args, **kwargs):
         get_package_share_directory('mbzirc_ign'), 'launch'), 
         '/spawn.launch.py']), 
         launch_arguments = {
-                'name': 'uav1', 
+                'name': 'uav1',  
                 'world': 'empty_platform', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-1', 
-                'z': '0.5', 
+                'z': '2.0', 
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
-                'gripper':'mbzirc_suction_gripper', 
+                'gripper':'mbzirc_suction_gripper_light,', 
                 #'slot0':'mbzirc_hd_camera', 
                 #'slot0' : 'mbzirc_rgbd_camera',
                 'type':'uav2', 
@@ -76,7 +73,7 @@ def launch(context, *args, **kwargs):
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-4', 
-                'z': '0.5', 
+                'z': '2.0', 
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
@@ -105,7 +102,7 @@ def launch(context, *args, **kwargs):
                 'type':'uav1',
                 #'slot0':'mbzirc_vga_camera', 
                 #'slot3': 'mbzirc_rgbd_camera', 
-                'gripper':'mbzirc_oberon7_gripper', 
+                'gripper':'mbzirc_oberon7_gripper_light', 
                 'flightTime' : '6000' #'flightTime':'1020'
                 }.items())
 
@@ -127,7 +124,7 @@ def launch(context, *args, **kwargs):
                 'type':'uav1',
                 #'slot0':'mbzirc_vga_camera', 
                 #'slot3': 'mbzirc_rgbd_camera', 
-                'gripper':'mbzirc_oberon7_gripper', 
+                'gripper':'mbzirc_oberon7_gripper_light', 
                 'flightTime' : '6000' #'flightTime':'1020'
                 }.items())
     
@@ -198,57 +195,49 @@ def launch(context, *args, **kwargs):
         output="screen" 
     )
     
-    ############ IF UAV 
-    # Create takeoff action (uav_ns, duration)
-    print("===========================")
-    print(ns)
-    if ns == "uav1": 
+
     
-        uav_takeoff_action = create_takeoff_action("uav1", 5); 
-        uav_move_action = create_move_action("uav1", 10,  0.02, 0.02, 0.0)
-        uav_stand_action = create_stand_action("uav1", 10)
+    duration_ = 5
+    uav_takeoff_action = create_takeoff_action("uav1", duration_); 
+    uav_send_to_pose_action = create_send_to_pose_action("uav1", duration_, x_pose=-2, y_pose=2, z_pose=3)
+    uav_land1 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=3.0)
+    uav_land2 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=2.0)
+    uav_land3 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=1.0)
+    uav_land4 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=0.0)
+    uav_grasp = create_grasp_action("uav1"); 
+    uav_fly = create_send_to_pose_action("uav1", duration_*5, x_pose=-1.95, y_pose=2, z_pose=4.0)
+    # Possible to create grasp but hard to manipulate uav after that
+    # uav_grasp = 
+   
+    start_time = 0
+    uav_first_movement = create_timed_description(uav_takeoff_action, 0.0)
+    uav_second_movement = create_timed_description(uav_send_to_pose_action, 5.0)
+    uav_third_movement = create_timed_description(uav_land1, 10.0)
+    uav_fourth_movement = create_timed_description(uav_land2, 15.0)
+    uav_fifth_movement = create_timed_description(uav_land3, 20.0)
+    uav_sixth_movement = create_timed_description(uav_land4, 25.0)
+    uav_grasp = create_timed_description(uav_grasp, 30.0)
+    uav_carry = create_timed_description(uav_fly, 35.0)
 
-        # First UAV movement
-        uav_first_movement = create_timed_description(uav_takeoff_action, 10.0)
-        uav_second_movement = create_timed_description(uav_move_action, 15.0)
-        uav_stand_still = create_timed_description(uav_stand_action, 20.0)
-    ###############################
-    if ns == "uav2": 
-        uav_takeoff_action = create_takeoff_action("uav2", 5); 
-        uav_move_action = create_move_action("uav2", 10, -0.02, 0.03, 0.0)
-        uav_stand_action = create_stand_action("uav2", 10)
 
-        # Second UAV moment
-        uav_first_movement = create_timed_description(uav_takeoff_action, 12.0)
-        uav_second_movement = create_timed_description(uav_move_action, 17.0) 
-        uav_stand_still = create_timed_description(uav_stand_action, 22.0)
-        
-
-    # Execute process publish cmd some 
-    # send_uav1_cmd = LaunchDescription([TimerAction(
-    #    period = 30.0,
-    #    actions = [send_cmd_action])
-    #])
 
     # Add spawning of UAVs
     return [ign_gazebo,
             joy_node,  
             spawn_small_aerial_manipulator1,
-            spawn_small_aerial_manipulator2,  
-            spawn_large_aerial_manipulator1,
-            spawn_large_aerial_manipulator2, 
-            #ros2_ign_score_bridge, 
-            #ros2_ign_run_clock_bridge, 
-            #ros2_ign_phase_bridge,
+            spawn_large_aerial_manipulator1, 
             uav_joy_node, 
+            uav1_ctl_node, 
             # Move first UAV
             uav_first_movement, 
             uav_second_movement, 
-            uav_stand_still, 
+            uav_third_movement, 
+            uav_fourth_movement, 
+            uav_fifth_movement, 
+            uav_sixth_movement, 
+            uav_grasp, 
+            uav_carry
             # Move second UAV
-            uav_first_movement, 
-            uav_second_movement, 
-            uav_stand_still
             ]
 
 def generate_launch_description():
@@ -264,6 +253,20 @@ def create_takeoff_action(uav_name, duration):
         name="pub_twist_cmd", 
         cmd = ['timeout {}s'.format(duration), 'ros2', 'topic', 'pub', '/{}/cmd_vel'.format(uav_name), 'geometry_msgs/msg/Twist',
                 '"{linear: {x: 0.0,y: 0.00, z: 0.1}, angular: {x: 0.0, y: 0.0, z: 0.0}}"'],
+        output="screen", 
+        shell=True)
+        
+    return action
+
+def create_send_to_pose_action(uav_name, duration, x_pose=0.0, y_pose=0.0, z_pose=0.0): 
+
+    position_str = "x: {}, y: {}, z: {}".format(x_pose, y_pose, z_pose)
+    cmd_str = '"{header: {stamp: {sec: 0, nanosec: 0}, frame_id: \'uav1\'}, pose: {position: {%s}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"' %position_str
+
+    action =  ExecuteProcess(
+        name="pub_twist_cmd", 
+        cmd = ['timeout {}s'.format(duration), 'ros2', 'topic', 'pub', '-r 5', '/{}/pose_ref'.format(uav_name), 'geometry_msgs/msg/PoseStamped',
+                cmd_str],#.format(x_cmd, y_cmd, z_cmd)],
         output="screen", 
         shell=True)
         
@@ -289,6 +292,19 @@ def create_stand_action(uav_name, duration):
         shell =True)
         
     return action
+
+def create_grasp_action(uav_name): 
+    
+    action =  ExecuteProcess(
+        name ="pub_grasp_cmd", 
+        # Added -r as rate for topic publishing and -t as how many messages is send 
+        cmd = ['ros2', 'topic', 'pub', '/{}/gripper/suction_on'.format(uav_name), 'std_msgs/msg/Bool',
+            '"data: true"'],
+        output ="screen", 
+        shell =True)
+        
+    return action
+
 
 def create_timed_description(action, start_time): 
 

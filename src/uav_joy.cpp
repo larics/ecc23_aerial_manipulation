@@ -67,12 +67,14 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
             
     }
 
-        // Call close gripper
+    // Call close gripper
     if (msg->buttons.at(2) == 1){
         RCLCPP_INFO_STREAM(this->get_logger(), "Grasping object!");
         auto req_ = std::make_shared<std_srvs::srv::Empty::Request>(); 
         closeGripperClient_->async_send_request(req_); 
-        startSuctionClient_->async_send_request(req_); 
+        std_msgs::msg::Bool suction_msg; 
+        suction_msg.data = true; 
+        suctionPub_->publish(suction_msg); 
 
     }
 
@@ -92,8 +94,8 @@ void UavJoy::choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Reques
     startSuctionClient_       = this->create_client<std_srvs::srv::Empty>(uav_namespace + std::string("/start_suction")); 
     stopSuctionClient_        = this->create_client<std_srvs::srv::Empty>(uav_namespace + std::string("/stop_suction")); 
 
-
 	RCLCPP_INFO(this->get_logger(), "Joystick control switched to %s!", uav_namespace.c_str()); 
 
-    cmdVelPub_ = this->create_publisher<geometry_msgs::msg::Twist>(uav_namespace + std::string("/cmd_vel"), 1); 	
+    cmdVelPub_ = this->create_publisher<geometry_msgs::msg::Twist>(uav_namespace + std::string("/cmd_vel"), 1); 
+    suctionPub_ = this->create_publisher<std_msgs::msg::Bool>(uav_namespace + std::string("/gripper/suction_on"), 5); 	
 }

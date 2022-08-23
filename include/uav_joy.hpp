@@ -32,6 +32,7 @@ class UavJoy: public rclcpp::Node
 	private:
 	        // publishers	
 		rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmdVelPub_; 
+		rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr 		suctionPub_; 
 		
 		// subscribers
 		rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joySub_; 

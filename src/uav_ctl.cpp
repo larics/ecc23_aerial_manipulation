@@ -66,11 +66,11 @@ void UavCtl::init()
     bottomC = false; topC = false; leftC = false; rightC = false; centerC = false; 
 
     // possible to use milliseconds and duration
-    std::chrono::duration<double> SYSTEM_DT(0.1);
+    // TODO: Add as reconfigurable param
+    std::chrono::duration<double> SYSTEM_DT(0.05);
     timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavCtl::timer_callback, this)); 
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
-
 }
 
 void UavCtl::init_ctl()
@@ -80,22 +80,29 @@ void UavCtl::init_ctl()
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
     
     // Height controller
-    pid.kp = 1.0; pid.ki = 0.01; pid.kd = 0.0; 
+    // TODO: Config I 
+    pid.kp = 2; pid.ki = 0.1;  pid.kd = 0.05; 
+    config.windup_limit = 5.0;
+    config.upper_limit = 9.0; 
+    config.lower_limit = -2.0;  
     z_controller_.set_pid(std::move(pid)); 
+    z_controller_.set_config(std::move(config)); 
     z_controller_.set_plant_state(0);
 
     // Horizontal - x controller
     pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
     x_controller_.set_pid(std::move(pid)); 
+    x_controller_.set_config(std::move(config)); 
     x_controller_.set_plant_state(0);
 
     // Horizontal - y controller 
     pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0;  
     y_controller_.set_pid(std::move(pid)); 
+    x_controller_.set_config(std::move(config)); 
     y_controller_.set_plant_state(0);  
 
     pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
-    yaw_controller_.set_pid(std::move(pid)); 
+    yaw_controller_.set_pid(std::move(pid));
     yaw_controller_.set_plant_state(0); 
 
     /*
@@ -368,6 +375,7 @@ void UavCtl::timer_callback()
         {
             suction_msg.data = true; 
             fullSuctionContactPub_->publish(suction_msg); 
+            //gripperCmdSuctionPub_->publish(suction_msg); 
             RCLCPP_INFO(this->get_logger(),"Suction ready!");    
 
         }else{
