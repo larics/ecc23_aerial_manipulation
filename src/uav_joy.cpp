@@ -5,14 +5,15 @@ UavJoy::UavJoy(): Node("uav_joy")
 	// Initialize 
 	init();
 
+    setScaleFactor(1); 
+
 	// TODO: Add clients into initialization 
 	// TODO: Change service to integrate type of UAV into consideration 
-
-
 }
 
 void UavJoy::init()
 {
+
     // publishers
     cmdVelPub_ 		    = this->create_publisher<geometry_msgs::msg::Twist>("/am_L/cmd_vel", 1); 
 
@@ -28,32 +29,34 @@ void UavJoy::init()
 void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 {   
     
-	float pitch; float thrust; float roll; float yaw; 
+	float pitch; float thrust; float roll; float yaw; float sF_; 
 	std::vector<float> axes_ = msg->axes; 
 	
 	roll = axes_.at(3); pitch = axes_.at(4); 
-	yaw = axes_.at(0); thrust = axes_.at(1); 
-
-    float scale_factor;  
+	yaw = axes_.at(0); thrust = axes_.at(1);     
+    int sF = getScaleFactor();
+    // https://www.quantstart.com/articles/Passing-By-Reference-To-Const-in-C/ 
     if (msg->buttons.at(5) == 1){
-        scale_factor = 2.5;
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Drive"); 
+        // crazy flight mode
+        sF_ = sF; 
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE]: Crazy!"); 
 
     }else{
-        scale_factor = 0.2; 
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE_L]: Approach!"); 
-
+        // normal flight mode
+        sF_ = static_cast<float>(sF) / 10.0;  
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE]: Slow!"); 
     }
 
 	// Create teleop msg
 	auto teleop_msg 	    = geometry_msgs::msg::Twist(); 
-	teleop_msg.linear.x	    = pitch * scale_factor; 
-	teleop_msg.linear.y 	= roll  * scale_factor; 
-	teleop_msg.linear.z	    = thrust * scale_factor; 
-	teleop_msg.angular.z 	= yaw    * scale_factor; 
+	teleop_msg.linear.x	    = pitch  * sF_; 
+	teleop_msg.linear.y 	= roll   * sF_; 
+	teleop_msg.linear.z	    = thrust * sF_; 
+	teleop_msg.angular.z 	= yaw    * sF_; 
 
 	cmdVelPub_->publish(teleop_msg); 
-
+    
+    // [ ] --> open gripper
     if (msg->buttons.at(0) == 1){                    
         // https://answers.ros.org/question/343279/ros2-how-to-implement-a-sync-service-client-in-a-node/
         // https://answers.ros.org/question/340389/client-doesnt-return-when-declared-inside-c-class-in-ros-2/
@@ -64,12 +67,25 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
             
     }
 
-    // Call close gripper
+    // X --> close_gripper
     if (msg->buttons.at(2) == 1){
         RCLCPP_INFO_STREAM(this->get_logger(), "Grasping object!");
         auto req_ = std::make_shared<std_srvs::srv::Empty::Request>(); 
         closeGripperClient_->async_send_request(req_); 
         startSuctionClient_->async_send_request(req_); 
+    }
+
+    // △ --> increase scale factor by one
+    if (msg->buttons.at(3) == 1){
+        sF++; 
+        setScaleFactor(sF);  
+        RCLCPP_INFO_STREAM(this->get_logger(), "Increasing scale factor: " << scale_factor);
+    }
+    
+    // O --> reset scale factor on one
+    if (msg->buttons.at(1) == 1){
+        RCLCPP_INFO_STREAM(this->get_logger(), "Resetting scale factor."); 
+        setScaleFactor(1); 
     }
 
 }
@@ -91,4 +107,15 @@ void UavJoy::choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Reques
 	RCLCPP_INFO(this->get_logger(), "Joystick control switched to %s!", uav_namespace.c_str()); 
 
     cmdVelPub_ = this->create_publisher<geometry_msgs::msg::Twist>(uav_namespace + std::string("/cmd_vel"), 1); 
+}
+
+// Methods that set scale factor 
+void UavJoy::setScaleFactor(int value) const
+{
+    scale_factor = value; 
+}
+
+int UavJoy::getScaleFactor() const
+{
+    return scale_factor; 
 }

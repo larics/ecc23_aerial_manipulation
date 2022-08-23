@@ -30,7 +30,11 @@ class UavJoy: public rclcpp::Node
 		//~UavJoy(); 
 
 	private:
-	        // publishers	
+
+		// vars
+		mutable int scale_factor;  
+	    
+		// publishers	
 		rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmdVelPub_; 
 		rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr 		suctionPub_; 
 		
@@ -49,7 +53,12 @@ class UavJoy: public rclcpp::Node
 
 		void init(); 
 		void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const; 
-		void choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Request::SharedPtr req, mbzirc_aerial_manipulation::srv::ChooseUav::Response::SharedPtr res); 
+		void choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Request::SharedPtr req,
+						 mbzirc_aerial_manipulation::srv::ChooseUav::Response::SharedPtr res); 
+
+		// Setting them as const to be usable by joy_callback which is also const
+		void setScaleFactor(int value) const; 
+		int getScaleFactor() const; 
 
 };
 
