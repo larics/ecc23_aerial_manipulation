@@ -35,14 +35,13 @@ target_include_directories(uav_ctl
 target_include_directories(uav_joy
   PRIVATE
   include/
-  
 )
   
 # Add target dependencies for correct linking
 ament_target_dependencies(uav_ctl
   rclcpp std_msgs geometry_msgs std_srvs sensor_msgs tf2_ros tf2_msgs jlb_pid)
 
-  ament_target_dependencies(uav_joy
+ament_target_dependencies(uav_joy
   rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation)
 
 if(BUILD_TESTING)

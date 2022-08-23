@@ -81,7 +81,7 @@ void UavCtl::init_ctl()
     
     // Height controller
     // TODO: Config I 
-    pid.kp = 2; pid.ki = 0.1;  pid.kd = 0.05; 
+    pid.kp = 1; pid.ki = 0.01;  pid.kd = 0.01; 
     config.windup_limit = 5.0;
     config.upper_limit = 9.0; 
     config.lower_limit = -2.0;  
@@ -174,7 +174,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         uav_ns.erase(0, 1); 
 
         // TODO: Bear in mind that world_name is variable in local scope, should be passed as arg
-        std::string world_name = "empty_platform";
+        std::string world_name = "simple_demo";
 
         for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
             // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/

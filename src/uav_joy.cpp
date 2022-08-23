@@ -22,9 +22,6 @@ void UavJoy::init()
     // services 
     chooseUavSrv_ 	    = this->create_service<mbzirc_aerial_manipulation::srv::ChooseUav>("/choose_uav", std::bind(&UavJoy::choose_uav, this, _1, _2));
 
-    // clients
-    // chooseUavClient_    = this->create_client<mbzirc_aerial_manipulation::srv::ChooseUav>("/choose_uav"); 
-
     RCLCPP_INFO(this->get_logger(), "Initialized uav_joy"); 
 }
 
@@ -39,7 +36,7 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 
     float scale_factor;  
     if (msg->buttons.at(5) == 1){
-        scale_factor = 1.1;
+        scale_factor = 2.5;
         RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION_MODE_L]: Drive"); 
 
     }else{
@@ -72,10 +69,7 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
         RCLCPP_INFO_STREAM(this->get_logger(), "Grasping object!");
         auto req_ = std::make_shared<std_srvs::srv::Empty::Request>(); 
         closeGripperClient_->async_send_request(req_); 
-        std_msgs::msg::Bool suction_msg; 
-        suction_msg.data = true; 
-        suctionPub_->publish(suction_msg); 
-
+        startSuctionClient_->async_send_request(req_); 
     }
 
 }
@@ -97,5 +91,4 @@ void UavJoy::choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Reques
 	RCLCPP_INFO(this->get_logger(), "Joystick control switched to %s!", uav_namespace.c_str()); 
 
     cmdVelPub_ = this->create_publisher<geometry_msgs::msg::Twist>(uav_namespace + std::string("/cmd_vel"), 1); 
-    suctionPub_ = this->create_publisher<std_msgs::msg::Bool>(uav_namespace + std::string("/gripper/suction_on"), 5); 	
 }
