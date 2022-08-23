@@ -29,11 +29,13 @@ void UavJoy::init()
 void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 {   
     
-	float pitch; float thrust; float roll; float yaw; float sF_; 
+	float pitch; float thrust; float roll; float yaw; 
 	std::vector<float> axes_ = msg->axes; 
 	
 	roll = axes_.at(3); pitch = axes_.at(4); 
 	yaw = axes_.at(0); thrust = axes_.at(1);     
+
+    float sF_; 
     int sF = getScaleFactor();
     // https://www.quantstart.com/articles/Passing-By-Reference-To-Const-in-C/ 
     if (msg->buttons.at(5) == 1){
