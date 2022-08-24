@@ -15,14 +15,10 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(mbzirc_aerial_manipulation REQUIRED)
 # PID controller
 find_package(jlb_pid REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-	"srv/ChooseUav.srv"
-)
+# mbzirc_aerial_manipulation_msgs
+find_package(mbzirc_aerial_manipulation_msgs REQUIRED)
 
 add_executable(uav_ctl src/uav_ctl_node.cpp src/uav_ctl.cpp)
 add_executable(uav_joy src/uav_joy_node.cpp src/uav_joy.cpp)
@@ -39,10 +35,10 @@ target_include_directories(uav_joy
   
 # Add target dependencies for correct linking
 ament_target_dependencies(uav_ctl
-  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs tf2_ros tf2_msgs jlb_pid)
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs tf2_ros tf2_msgs jlb_pid mbzirc_aerial_manipulation_msgs)
 
 ament_target_dependencies(uav_joy
-  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation)
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -65,7 +61,6 @@ install(TARGETS
 install(DIRECTORY
   launch
   src 
-  srv
   DESTINATION share/${PROJECT_NAME}/
 )
 

@@ -21,7 +21,7 @@ void UavJoy::init()
     joySub_ 		    = this->create_subscription<sensor_msgs::msg::Joy>("/joy", 10, std::bind(&UavJoy::joy_callback, this, _1)); 
 
     // services 
-    chooseUavSrv_ 	    = this->create_service<mbzirc_aerial_manipulation::srv::ChooseUav>("/choose_uav", std::bind(&UavJoy::choose_uav, this, _1, _2));
+    chooseUavSrv_ 	    = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChooseUav>("/choose_uav", std::bind(&UavJoy::choose_uav, this, _1, _2));
 
     RCLCPP_INFO(this->get_logger(), "Initialized uav_joy"); 
 }
@@ -92,8 +92,8 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 
 }
 
-void UavJoy::choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Request::SharedPtr req, 
-		mbzirc_aerial_manipulation::srv::ChooseUav::Response::SharedPtr res) 
+void UavJoy::choose_uav(const mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Request::SharedPtr req, 
+		mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Response::SharedPtr res) 
 {
 	// Maybe will be neccessary to have mutex lock to prevent breaking when trying to publish 
 	// message during topic change

@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <math.h>
 
 //* ros
 #include "rclcpp/rclcpp.hpp"
@@ -27,6 +28,9 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+
+//* custom msgs
+#include "mbzirc_aerial_manipulation_msgs/msg/pose_euler.hpp"
 
 //* srvs
 #include "std_srvs/srv/trigger.hpp"
@@ -67,15 +71,15 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                   fullSuctionContactPub_; 
 
         // subscribers
-        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr              joySub_;  
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr           poseSub_; 
-        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    currPoseSub_;
-        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr    cmdPoseSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                bottomContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                leftContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                rightContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                centerContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                topContactSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                          joySub_;  
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                       poseSub_; 
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                currPoseSub_;
+        rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr     cmdPoseSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            bottomContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            leftContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            rightContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            centerContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            topContactSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
@@ -107,7 +111,8 @@ class UavCtl: public rclcpp::Node
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
-        float                                                               roll, pitch, currentYaw_; 
+        float                                                               roll, pitch;
+        float                                                               currentYaw_, cmdYaw_;  
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::Pose                                            poseDist_; 
@@ -121,13 +126,14 @@ class UavCtl: public rclcpp::Node
         // timer callback 
         void timer_callback(); 
 
-        // void get_pose
-        void get_pose_dist(); 
+        // methods
+        void    get_pose_dist();        
+        double  calculate_yaw_setpoint();  
 
         // sub callbacks
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
-        void cmd_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
+        void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);         
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void left_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
@@ -144,6 +150,11 @@ class UavCtl: public rclcpp::Node
                            std_srvs::srv::Empty::Response::SharedPtr res); 
         bool stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
                            std_srvs::srv::Empty::Response::SharedPtr res); 
+
+        // getters
+        float getCurrentYaw(); 
+        float getCmdYaw(); 
+        
 
 };
 

@@ -16,7 +16,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 
 //* srvs
-#include "mbzirc_aerial_manipulation/srv/choose_uav.hpp"
+#include "mbzirc_aerial_manipulation_msgs/srv/choose_uav.hpp"
 #include "std_srvs/srv/empty.hpp"
 
 using namespace std::chrono_literals; 
@@ -42,7 +42,7 @@ class UavJoy: public rclcpp::Node
 		rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joySub_; 
 
 		// services
-		rclcpp::Service<mbzirc_aerial_manipulation::srv::ChooseUav>::SharedPtr chooseUavSrv_; 
+		rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::ChooseUav>::SharedPtr chooseUavSrv_; 
 
 		// clients 
 		rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		chooseUavClient_; // Could be used for initing all UAVs
@@ -53,8 +53,8 @@ class UavJoy: public rclcpp::Node
 
 		void init(); 
 		void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const; 
-		void choose_uav(const mbzirc_aerial_manipulation::srv::ChooseUav::Request::SharedPtr req,
-						 mbzirc_aerial_manipulation::srv::ChooseUav::Response::SharedPtr res); 
+		void choose_uav(const mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Request::SharedPtr req,
+						 mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Response::SharedPtr res); 
 
 		// Setting them as const to be usable by joy_callback which is also const
 		void setScaleFactor(int value) const; 
