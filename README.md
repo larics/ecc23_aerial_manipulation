@@ -126,6 +126,16 @@ source <workspace>/install/setup.bash
 Uncomment stuff regarding `uav_joy`. 
 Run build again. 
 
+### Joystick debugging 
+
+If joystick doesn't work, check this [info](https://answers.ros.org/question/384456/ros2-joy_node-debugging/). 
+
+In ROS2 joystick is fetched from `/dev/input/eventX`. 
+To enable `/dev/input/eventX` run: 
+```
+sudo chmod a+rw /dev/input/event*
+```
+
 
 ### TODO: 
 

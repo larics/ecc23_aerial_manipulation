@@ -55,9 +55,10 @@ def launch(context, *args, **kwargs):
                 'R': '0', 
                 'P': '0', 
                 'Y': '0', 
-                'gripper':'mbzirc_suction_gripper_light', 
-                #'slot0':'mbzirc_hd_camera', 
-                #'slot0' : 'mbzirc_rgbd_camera',
+                'gripper': 'mbzirc_suction_gripper_light', 
+                # slot3 is a bottom slot
+                'slot3': 'mbzirc_rgbd_camera', 
+                'slot0' : 'mbzirc_hd_camera',
                 'type':'uav2', 
                 'flightTime': '6000', 
                 #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
