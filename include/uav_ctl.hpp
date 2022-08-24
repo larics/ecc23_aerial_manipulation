@@ -12,6 +12,7 @@
 //* tf2
 #include <tf2/exceptions.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/buffer.h>
 
 //* msgs
@@ -97,7 +98,10 @@ class UavCtl: public rclcpp::Node
         std::unique_ptr<tf2_ros::Buffer>                                    amSTfBuffer{nullptr};
 
         // transform_listener
-        std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr}; 
+        std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr};
+
+        // transform_broadcaster
+        std::unique_ptr<tf2_ros::TransformBroadcaster>                      staticPoseTfBroadcaster_;
 
         int                                                                 operationMode;
         bool                                                                nodeInitialized = false; 

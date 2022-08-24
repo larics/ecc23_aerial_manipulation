@@ -56,6 +56,9 @@ void UavCtl::init()
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
+    // TF
+    staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    
     // Initial position
     cmdPose_.pose.position.x = 0.0; 
     cmdPose_.pose.position.y = 0.0; 
@@ -201,6 +204,10 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
                 msg.pose.orientation = transform_msg.transform.rotation; 
 
                 poseGtPub_->publish(msg); 
+                
+                // Also broadcast as tf
+                staticPoseTfBroadcaster_->sendTransform(transform_msg);
+
                 break; 
 
             }; 
