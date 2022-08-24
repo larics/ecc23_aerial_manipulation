@@ -12,6 +12,7 @@
 //* tf2
 #include <tf2/exceptions.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/buffer.h>
 
 //* msgs
@@ -51,7 +52,10 @@ class UavCtl: public rclcpp::Node
 
         std::string ns_; 
 
-    private: 
+    private:
+
+        // parameters
+        std::string                                                         world_name_;
 
         // publishers 
         rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr              absPoseDistPub_; 
@@ -72,7 +76,6 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                rightContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                centerContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                topContactSub_; 
-
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
@@ -95,7 +98,10 @@ class UavCtl: public rclcpp::Node
         std::unique_ptr<tf2_ros::Buffer>                                    amSTfBuffer{nullptr};
 
         // transform_listener
-        std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr}; 
+        std::shared_ptr<tf2_ros::TransformListener>                         amSTransformListener{nullptr};
+
+        // transform_broadcaster
+        std::unique_ptr<tf2_ros::TransformBroadcaster>                      staticPoseTfBroadcaster_;
 
         int                                                                 operationMode;
         bool                                                                nodeInitialized = false; 
