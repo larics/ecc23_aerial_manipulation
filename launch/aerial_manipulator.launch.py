@@ -31,11 +31,13 @@ import os
 
 def launch(context, *args, **kwargs):
 
+    world_name = 'empty_platform'
+
     ign_gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
         get_package_share_directory('ros_ign_gazebo'), 'launch'),
         '/ign_gazebo.launch.py']),
-        launch_arguments = {'ign_args': "-v 50 -r empty_platform.sdf"}.items()) 
+        launch_arguments = {'ign_args': f"-v 50 -r {world_name}.sdf"}.items()) 
 
     #spawn_small_aerial_manipulator
     spawn_small_aerial_manipulator1 = IncludeLaunchDescription(
@@ -44,7 +46,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']), 
         launch_arguments = {
                 'name': 'uav1', 
-                'world': 'empty_platform', 
+                'world': f'{world_name}', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-1', 
@@ -67,7 +69,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']), 
         launch_arguments = {
                 'name': 'uav2', 
-                'world': 'empty_platform', 
+                'world': f'{world_name}', 
                 'model': 'mbzirc_quadrotor',
                 'x': '0', 
                 'y': '-4', 
@@ -89,7 +91,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']),
         launch_arguments = {
                 'name' : 'uav3', 
-                'world': 'empty_platform', 
+                'world': f'{world_name}', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-2.5', 
                 'y': '-1.9',
@@ -111,7 +113,7 @@ def launch(context, *args, **kwargs):
         '/spawn.launch.py']),
         launch_arguments = {
                 'name' : 'uav4', 
-                'world': 'empty_platform', 
+                'world': f'{world_name}', 
                 'model': 'mbzirc_hexrotor', 
                 'x': '-5.0', 
                 'y': '-1.9',
@@ -160,7 +162,8 @@ def launch(context, *args, **kwargs):
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
         namespace="uav1", # Add node namespace for UAV ctl 
-        output="screen"
+        output="screen",
+        parameters=[{'world_name': f'{world_name}'}],
     )
 
     # Control node for large UAV (example)
@@ -168,7 +171,8 @@ def launch(context, *args, **kwargs):
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
         namespace="uav2", 
-        output="screen"
+        output="screen",
+        parameters=[{'world_name': f'{world_name}'}],
     )
 
     # Control node for large UAV (example)
@@ -176,7 +180,8 @@ def launch(context, *args, **kwargs):
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
         namespace="uav3", 
-        output="screen"
+        output="screen",
+        parameters=[{'world_name': f'{world_name}'}],
     )
 
     # Control node for large UAV (example)
@@ -184,7 +189,8 @@ def launch(context, *args, **kwargs):
         package="mbzirc_aerial_manipulation", 
         executable="uav_ctl", 
         namespace="uav4", 
-        output="screen"
+        output="screen",
+        parameters=[{'world_name': f'{world_name}'}],
     )
 
     uav_joy_node = Node(

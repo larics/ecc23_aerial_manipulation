@@ -19,10 +19,13 @@ UavCtl::UavCtl(): Node("uav_ctl")
 
 void UavCtl::init()
 {   
-
     // Take node namespace as uav_name (easiest way to capture ns param)
     ns_ = this->get_namespace(); 	
 
+    // Parameters
+    this->declare_parameter<std::string>("world_name", "coast");
+    this->get_parameter("world_name", world_name_);
+    
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1); 
@@ -173,9 +176,6 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         // Remove backslash 
         uav_ns.erase(0, 1); 
 
-        // TODO: Bear in mind that world_name is variable in local scope, should be passed as arg
-        std::string world_name = "simple_demo";
-
         for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
             // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
             geometry_msgs::msg::TransformStamped transform_msg; 
@@ -187,7 +187,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
             child_frame_id  = transform_msg.child_frame_id; 
 
             // publish pose_gt for this uav
-            if (frame_id == world_name && child_frame_id == uav_ns) 
+            if (frame_id == world_name_ && child_frame_id == uav_ns) 
             {   
                 pose_estimate = true; 
                 geometry_msgs::msg::PoseStamped msg; 
