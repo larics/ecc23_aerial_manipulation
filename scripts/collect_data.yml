@@ -1,0 +1,19 @@
+
+name: collect_data
+root: ~/
+
+windows:
+  - editor:
+      layout: tiled
+      # Synchronize all panes of this window, can be enabled before or after the pane commands run.
+      # 'before' represents legacy functionality and will be deprecated in a future release, in favour of 'after'
+      # synchronize: after
+      panes:
+        - aerial_manipulator_driver:
+          - ros2 launch mbzirc_aerial_manipulation aerial_manipulator_sea.launch.py
+        - record-bags: 
+          - cd /home/developer/bags
+          - ros2 bag record /uav1/slot0/image_raw
+        - debug-pane:
+          - sleep 15; ros2 run rqt_image_view rqt_image_view
+# attach: false
