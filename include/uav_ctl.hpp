@@ -32,6 +32,7 @@
 
 //* custom msgs
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_euler.hpp"
+#include "mbzirc_aerial_manipulation_msgs/msg/pose_error.hpp"
 
 //* srvs
 #include "std_srvs/srv/trigger.hpp"
@@ -63,25 +64,25 @@ class UavCtl: public rclcpp::Node
         std::string                                                         world_name_;
 
         // publishers 
-        rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr              absPoseDistPub_; 
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr             cmdVelPub_; 
-        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr       poseGtPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                gripperCmdPosLeftPub_; 
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                gripperCmdPosRightPub_; 
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                   gripperCmdSuctionPub_; 
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                   fullSuctionContactPub_; 
+        rclcpp::Publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>::SharedPtr   absPoseDistPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr                         cmdVelPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr                   poseGtPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                            gripperCmdPosLeftPub_; 
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                            gripperCmdPosRightPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               gripperCmdSuctionPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_; 
 
         // subscribers
-        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                          joySub_;  
-        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                       poseSub_; 
-        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                currPoseSub_;
-        rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                detObjSub_;
-        rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr     cmdPoseSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            bottomContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            leftContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            rightContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            centerContactSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                            topContactSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
+        rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
+        rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr    cmdPoseSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                bottomContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                leftContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                rightContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                centerContactSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
@@ -119,7 +120,7 @@ class UavCtl: public rclcpp::Node
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
-        geometry_msgs::msg::Pose                                            poseDist_; 
+        mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
 
             // State machine
