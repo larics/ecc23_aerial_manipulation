@@ -169,6 +169,8 @@ void UavCtl::cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseE
     cmdYaw_ = msg->heading.data; 
 
     cmdReciv = true; 
+    current_state_= POSITION; 
+
 }
 
 void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) 
@@ -370,7 +372,6 @@ double UavCtl::calculate_yaw_setpoint()
   return yawRef; 
 }
 
-
 // Timer callback executes every 1.0/0.2 (5s)
 void UavCtl::timer_callback()
 {
@@ -384,7 +385,7 @@ void UavCtl::timer_callback()
         
         geometry_msgs::msg::Twist cmdVel_;
 
-        if(cmdReciv && current_state_ == POSITION)
+        if (current_state_ == POSITION)
         {
         // TODO: Add in fuctions!    
         // Publish current pose difference
@@ -435,15 +436,12 @@ void UavCtl::timer_callback()
         // SERVOING
         if (current_state_ == SERVOING)
         {
-
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
-
             // P gain
             float Kp_xy = 0.5;
             float Kp_z = 0.5; 
             float limit_xy = 0.5; 
             float limit_z = 0.4; 
-
             // Align x, y
             double cmd_x = - Kp_xy * (0 - detObjPose_.point.x); 
             limitCommand(cmd_x, limit_xy);
@@ -451,7 +449,6 @@ void UavCtl::timer_callback()
             double cmd_y = - Kp_xy * (0 - detObjPose_.point.y); 
             limitCommand(cmd_y, limit_xy);
             cmdVel_.linear.y = cmd_y; 
-
             // Send z
             if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
             {
@@ -487,8 +484,7 @@ void UavCtl::timer_callback()
 
         // ALIGN GRASP
         if (current_state_ == ALIGN_GRASP)
-        {
-            
+        { 
             RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] in progress. "); 
             RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] num_contacts: " << getNumContacts()); 
             // Apply constant pressure on gripper and move it left/right until 
@@ -585,6 +581,7 @@ int UavCtl::getNumContacts() const
 
 }
 
+// redundant
 void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)
 {   
     // trying to make an informed reference
