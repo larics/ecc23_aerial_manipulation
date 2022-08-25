@@ -255,20 +255,22 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 
 void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
+    // Positioning of suction gripper is not synonimous to real positions so we 
+    // assign values as they correspond to our suction gripper
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved bottom suction"); 
-    bottomC = msg->data; 
+    rightC = msg->data; 
 }
 
 void UavCtl::left_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {   
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved left suction"); 
-    leftC = msg->data; 
+    topC = msg->data; 
 }
 
 void UavCtl::right_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {   
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved right suction"); 
-    rightC = msg->data; 
+    bottomC = msg->data; 
 }
 
 void UavCtl::center_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -280,7 +282,7 @@ void UavCtl::center_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 void UavCtl::top_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved top suction"); 
-    topC = msg->data; 
+    leftC = msg->data; 
 }
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -379,7 +381,8 @@ void UavCtl::timer_callback()
         
         geometry_msgs::msg::Twist cmdVel_;
 
-        if(cmdReciv && current_state_ == POSITION){
+        if(cmdReciv && current_state_ == POSITION)
+        {
         // TODO: Add in fuctions!    
         // Publish current pose difference
         get_pose_dist(); 
@@ -424,12 +427,11 @@ void UavCtl::timer_callback()
         cmdVel_.angular.z = cmd_yaw;   
 
         cmdVelPub_->publish(cmdVel_);
-
-
         }
 
         // SERVOING
-        if (current_state_ == SERVOING){
+        if (current_state_ == SERVOING)
+        {
 
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
 
@@ -469,33 +471,60 @@ void UavCtl::timer_callback()
         if (current_state_ == APPROACH)
         {   
             RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
-            cmdVel_.linear.z = -0.2; 
+            cmdVel_.linear.x = -0.1; 
+            cmdVel_.linear.z = -0.3; 
 
             RCLCPP_INFO_STREAM(this->get_logger(), "[APPROACH] Current num contacts: " << getNumContacts()); 
             if (checkContacts())
-            {   
-                double cmd_x, cmd_y; 
-                generateContactRef(cmd_x, cmd_y);
-                cmdVel_.linear.x = cmd_x; 
-                cmdVel_.linear.y = cmd_y; 
-
+            {
+                current_state_ = ALIGN_GRASP; 
             }
             
         }
 
+        // ALIGN GRASP
+        if (current_state_ == ALIGN_GRASP)
+        {
+            
+            RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] in progress. "); 
+            RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] num_contacts: " << getNumContacts()); 
+            // Apply constant pressure on gripper and move it left/right until 
+            // on middle of a case
+            cmdVel_.linear.z = -5.0; 
+            double cmd_x, cmd_y; 
+            /*generateContactRef(cmd_x, cmd_y);
+            cmdVel_.linear.x = cmd_x; 
+            cmdVel_.linear.y = cmd_y;*/ 
+            if (getNumContacts() > 4){
+                contactCounter_++; 
+            }else{
+                contactCounter_ = 0; 
+            }
+            if(contactCounter_> 3){
+                current_state_ = GRASP; 
+            }
+        }
+
         // GRASP
         std_msgs::msg::Bool suction_msg; 
-        if (current_state_ == GRASP){
-            
+        if (current_state_ == GRASP)
+        {
             float Kp_z = 0.5; 
             RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Grasping an object!"); 
             suction_msg.data = true; 
-            if (checkContacts()){
-                fullSuctionContactPub_->publish(suction_msg); 
+
+            if (getNumContacts() > 4)
+            {
                 contactCounter_++; 
             }
             // uses current pose!
-            if (contactCounter_ > 5)
+            if (contactCounter_ > 5 && contactCounter_ < 15)
+            {   
+                RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Started sucking big time!"); 
+                gripperCmdSuctionPub_->publish(suction_msg); 
+                
+            }
+            if (contactCounter_ > 15)
             {
                 double cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
                 cmdVel_.linear.z = cmd_z; 
@@ -506,28 +535,6 @@ void UavCtl::timer_callback()
 
         cmdVelPub_->publish(cmdVel_); 
 
-
-
-
-        // Publish contacts if all 5 are touching object
-        //RCLCPP_INFO_STREAM(this->get_logger(), "bottom: " << bottomC);
-
-        // Check during service call and return true or false depends on current value
-        
-        if(bottomC && rightC && leftC && topC && centerC)
-        {
-            suction_msg.data = true; 
-            //fullSuctionContactPub_->publish(suction_msg); 
-            //gripperCmdSuctionPub_->publish(suction_msg); 
-            RCLCPP_INFO(this->get_logger(),"Suction ready!");    
-
-        }else{
-            suction_msg.data = false; 
-            fullSuctionContactPub_->publish(suction_msg); 
-            //RCLCPP_INFO(this->get_logger(),"Suction not ready!");  
-        } 
-               
-       
     } 
 
 }   
@@ -561,14 +568,15 @@ bool UavCtl::checkContacts() const
     bool contacts = bottomC || rightC || leftC || topC || centerC;
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Contacts: " << contacts); 
-    printContacts(); 
+    //printContacts(); 
 
     return contacts; 
 }
 
 int UavCtl::getNumContacts() const
-{
-    int numContacts = (int)bottomC + (int)rightC + (int)leftC + (int)topC + (int)centerC;
+{   
+
+    int numContacts = int(bottomC) + int(rightC) + int(leftC) + int(topC) + int(centerC);
 
     return numContacts; 
 
@@ -576,22 +584,27 @@ int UavCtl::getNumContacts() const
 
 void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)
 {   
+    // trying to make an informed reference
     cmd_x = 0.0; cmd_y = 0.0;
 
+    // go backwards
     if(topC && !bottomC){
-        cmd_x = 0.15; 
+        cmd_x = -0.2; 
     }
 
+    // go forward
     if(!topC && bottomC){
-        cmd_x = -0.15; 
+        cmd_x = 0.2; 
     }
 
+    // go right
     //if(!rightC && leftC){
-    //    cmd_y = 0.1;
+    //    cmd_y = -0.1;
     //}
 
+    // go left
     //if(rightC && !leftC){
-    //    cmd_y = -0.1; 
+    //    cmd_y = 0.1; 
     //}
 
 

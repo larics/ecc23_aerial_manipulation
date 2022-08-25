@@ -211,7 +211,7 @@ def launch(context, *args, **kwargs):
     duration_ = 5
     uav_takeoff_action = create_takeoff_action("uav1", duration_); 
     uav_send_to_pose_action = create_send_to_pose_action("uav1", duration_, x_pose=-2, y_pose=2, z_pose=3)
-    uav_land1 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=2.75)
+    uav_land1 = create_send_to_pose_action("uav1", duration_, x_pose=0,  y_pose=-1, z_pose=4)
     uav_land2 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=2.5)
     uav_land3 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=2.3)
     uav_land4 = create_send_to_pose_action("uav1", duration_, x_pose=-1.90, y_pose=2, z_pose=1.0)
@@ -234,28 +234,9 @@ def launch(context, *args, **kwargs):
     return [ign_gazebo,
             joy_node,  
             spawn_small_aerial_manipulator1,
-            #spawn_small_aerial_manipulator2,  
-            spawn_large_aerial_manipulator1,
-            #spawn_large_aerial_manipulator2, 
-            #ros2_ign_score_bridge, 
-            #ros2_ign_run_clock_bridge, 
-            #ros2_ign_phase_bridge,
             uav_joy_node, 
-            uav1_ctl_node, 
-            uav3_ctl_node, 
-            hsv_filter_node
-            #uav_first_movement, 
-            #uav_second_movement, 
-            #uav_third_movement, 
-            #uav_fourth_movement, 
-            #uav_fifth_movement, 
-            #uav_sixth_movement, 
-            #uav_grasp, 
-            #uav_carry
-            #uav2_ctl_node,
-            #uav3_ctl_node, 
-            #uav4_ctl_node, 
-            ]
+            uav1_ctl_node,  
+            hsv_filter_node]
 
 def generate_launch_description():
     return LaunchDescription([

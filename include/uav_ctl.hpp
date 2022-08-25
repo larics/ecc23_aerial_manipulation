@@ -130,7 +130,8 @@ class UavCtl: public rclcpp::Node
             POSITION = 2, 
             SERVOING = 3, 
             APPROACH = 4, 
-            GRASP = 5       
+            GRASP = 5, 
+            ALIGN_GRASP = 6      
         };
 
         enum state                                                          current_state_ = IDLE;
