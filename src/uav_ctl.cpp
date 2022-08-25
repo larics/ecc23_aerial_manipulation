@@ -228,7 +228,6 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 }
 
 void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
-
 {
 
     // Timestamp comparison
@@ -372,7 +371,6 @@ double UavCtl::calculate_yaw_setpoint()
   return yawRef; 
 }
 
-// Timer callback executes every 1.0/0.2 (5s)
 void UavCtl::timer_callback()
 {
     // TODO: Add control here for PID control :) 
@@ -387,6 +385,8 @@ void UavCtl::timer_callback()
 
         if (current_state_ == POSITION)
         {
+
+        RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Position control!"); 
         // TODO: Add in fuctions!    
         // Publish current pose difference
         get_pose_dist(); 
@@ -472,7 +472,7 @@ void UavCtl::timer_callback()
         {   
             RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
             cmdVel_.linear.x = -0.1; 
-            cmdVel_.linear.z = -0.3; 
+            cmdVel_.linear.z = -0.5; 
 
             RCLCPP_INFO_STREAM(this->get_logger(), "[APPROACH] Current num contacts: " << getNumContacts()); 
             if (checkContacts())
@@ -490,10 +490,6 @@ void UavCtl::timer_callback()
             // Apply constant pressure on gripper and move it left/right until 
             // on middle of a case
             cmdVel_.linear.z = -5.0; 
-            double cmd_x, cmd_y; 
-            /*generateContactRef(cmd_x, cmd_y);
-            cmdVel_.linear.x = cmd_x; 
-            cmdVel_.linear.y = cmd_y;*/ 
             if (getNumContacts() > 4){
                 contactCounter_++; 
             }else{

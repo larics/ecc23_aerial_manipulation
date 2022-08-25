@@ -146,10 +146,11 @@ sudo chmod a+rw /dev/input/event*
 - [x] Add clients to joy control
 - [x] Add horizontal control
 - [x] Add and try [simple state machine](https://github.com/fzoric8/sm_aerial_manipulator)  
-- [ ] Add yaw control   
-- [ ] Figure out states for UAV
-- [ ] Think of relative vs. global position control --> changing frame of reference 
-- [ ] Check suction mechanism 
+- [x] Add yaw control   
+- [ ] Figure out states for UAV --> internal states for aerial manipulator only 
+- [x] Think of relative vs. global position control --> changing frame of reference 
+- [x] Check suction mechanism 
 - [ ] Tune controllers 
-- [ ] Enable development on server 
+- [ ] Test lifting objects with different yaw 
+- [ ] Add params in config file to be easily reconfigurable
 
