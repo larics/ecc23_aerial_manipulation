@@ -32,7 +32,6 @@
   
   <export>
     <build_type>ament_cmake</build_type> 
-
   </export>
 
   <!-- As a generic dependency -->
