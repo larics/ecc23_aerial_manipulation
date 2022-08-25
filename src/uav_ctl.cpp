@@ -32,7 +32,7 @@ void UavCtl::init()
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
-    absPoseDistPub_        = this->create_publisher<geometry_msgs::msg::Pose>(ns_ + std::string("/pose_dist"), 1); 
+    absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>(ns_ + std::string("/pose_dist"), 1); 
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/all"), 1); 
 
@@ -158,7 +158,7 @@ void UavCtl::cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseE
 {   
     RCLCPP_INFO_STREAM(this->get_logger(), "Recieved cmd_pose!"); 
     // TODO: Fix this part! --> missess orientation check
-    // Add time check to publish poseDist_ message if there's no command for 5 secs
+    // Add time check to publish poseError_ message if there's no command for 5 secs
     // cmdPose_.header.frame_id = msg->header.frame_id; 
     // Currently no header in CMD message
     cmdPose_.pose.position.x = msg->position.x; 
@@ -342,13 +342,16 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
 
 void UavCtl::get_pose_dist()
 {
-
-    poseDist_.position.x = std::abs(cmdPose_.pose.position.x - currPose_.pose.position.x);
-    poseDist_.position.y = std::abs(cmdPose_.pose.position.y - currPose_.pose.position.y);
-    poseDist_.position.z = std::abs(cmdPose_.pose.position.z - currPose_.pose.position.z);
-    // TODO: Figure out what happens to orientation
-    // Check heading differences!
-
+    poseError_.position.x = std::abs(cmdPose_.pose.position.x - currPose_.pose.position.x);
+    poseError_.position.y = std::abs(cmdPose_.pose.position.y - currPose_.pose.position.y);
+    poseError_.position.z = std::abs(cmdPose_.pose.position.z - currPose_.pose.position.z);
+    poseError_.abs_position = std::sqrt(std::pow(poseError_.position.x, 2)
+                                       + std::pow(poseError_.position.y, 2)
+                                       + std::pow(poseError_.position.z, 2));
+    auto angle_diff = std::fmod(getCmdYaw() - getCurrentYaw(), 360.0);
+    if (angle_diff < -180.0) angle_diff += 360.0; 
+    if (angle_diff >= 180.0) angle_diff -= 360.0;
+    poseError_.heading = std::abs(angle_diff);
 }
 
 double UavCtl::calculate_yaw_setpoint()
@@ -386,7 +389,7 @@ void UavCtl::timer_callback()
         // TODO: Add in fuctions!    
         // Publish current pose difference
         get_pose_dist(); 
-        absPoseDistPub_->publish(poseDist_);
+        absPoseDistPub_->publish(poseError_);
         
         // Using only update as suggested in jlbpid docs results in threading issue
         x_controller_.set_plant_state(currPose_.pose.position.x); 
