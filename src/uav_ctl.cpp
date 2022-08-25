@@ -366,23 +366,23 @@ void UavCtl::timer_callback()
         z_controller_.update();
         cmd_z = z_controller_.get_control_effort(); 
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "cmd yaw: " << calculate_yaw_setpoint()); 
+        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd yaw: " << calculate_yaw_setpoint()); 
         yaw_controller_.set_plant_state(getCurrentYaw());
         yaw_controller_.set_setpoint(calculate_yaw_setpoint()); 
         yaw_controller_.update(); 
         cmd_yaw = yaw_controller_.get_control_effort(); 
 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
-        //RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
+        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
+        // RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
+        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << getCurrentYaw());      
-        RCLCPP_INFO_STREAM(this->get_logger(), "cos(yaw)" << cos(getCurrentYaw())); 
-        RCLCPP_INFO_STREAM(this->get_logger(), "sin(yaw)" << sin(getCurrentYaw())); 
+        // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << getCurrentYaw());      
+        // RCLCPP_INFO_STREAM(this->get_logger(), "cos(yaw)" << cos(getCurrentYaw())); 
+        // RCLCPP_INFO_STREAM(this->get_logger(), "sin(yaw)" << sin(getCurrentYaw())); 
     
         geometry_msgs::msg::Twist cmdVel_;
-        cmdVel_.linear.x = cmd_x * cos(getCurrentYaw()); //- cmd_y * sin(getCurrentYaw());  
-        cmdVel_.linear.y = cmd_y * sin(getCurrentYaw()); //+ cmd_x * sin(getCurrentYaw()) ; 
+        cmdVel_.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
+        cmdVel_.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
         cmdVel_.linear.z = cmd_z; 
 
         cmdVel_.angular.x = 0; 

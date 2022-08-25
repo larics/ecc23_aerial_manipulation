@@ -19,17 +19,19 @@
   
   <member_of_group>rosidl_interface_packages</member_of_group>
   
+  <build_type>ament_cmake</build_type>
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>ros_ign</depend>
+  <depend>std_srvs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_msgs</depend>
+  <depend>jlb_pid</depend>
+  <depend>mbzirc_aerial_manipulation_msgs</depend>
+  
   <export>
-    <build_type>ament_cmake</build_type>
-    <depend>rclcpp</depend>
-    <depend>geometry_msgs</depend>
-    <depend>std_msgs</depend>
-    <depend>ros_ign</depend>
-    <depend>std_srvs</depend>
-    <depend>sensor_msgs</depend>
-    <depend>tf2_ros</depend>
-    <depend>tf2_msgs</depend>
-    <depend>jlb_pid</depend>
   </export>
 
   <!-- As a generic dependency -->
