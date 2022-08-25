@@ -244,11 +244,10 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     bool cond_x = std::abs(x) < 1.0;
     bool cond_y = std::abs(y) < 1.0;
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "x: " << std::abs(x) << "\ny: " << std::abs(y) << "\nz" << z); 
+    // RCLCPP_INFO_STREAM(this->get_logger(), "x: " << std::abs(x) << "\ny: " << std::abs(y) << "\nz" << z); 
     //RCLCPP_INFO_STREAM(this->get_logger(), "abs dist y" << std::abs(y)); 
 
-
-    if(cond_x && cond_y ){
+    if(cond_x && cond_y && current_state_ == IDLE){
         current_state_= SERVOING; 
     }
 
@@ -429,7 +428,7 @@ void UavCtl::timer_callback()
 
         }
 
-
+        // SERVOING
         if (current_state_ == SERVOING){
 
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
@@ -464,41 +463,61 @@ void UavCtl::timer_callback()
                
             }
 
-
-
         }
 
+        // APPROACH
         if (current_state_ == APPROACH)
         {   
+            RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
             cmdVel_.linear.z = -0.2; 
-            current_state_ == GRASP
+
+            RCLCPP_INFO_STREAM(this->get_logger(), "[APPROACH] Current num contacts: " << getNumContacts()); 
+            if (checkContacts())
+            {   
+                double cmd_x, cmd_y; 
+                generateContactRef(cmd_x, cmd_y);
+                cmdVel_.linear.x = cmd_x; 
+                cmdVel_.linear.y = cmd_y; 
+
+            }
             
         }
 
+        // GRASP
+        std_msgs::msg::Bool suction_msg; 
         if (current_state_ == GRASP){
-
+            
+            float Kp_z = 0.5; 
+            RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Grasping an object!"); 
             suction_msg.data = true; 
-            fullSuctionContactPub_->publish(suction_msg); 
-            double cmd_z = Kp_z * (3.0 - currPose_.pose.position.z);
+            if (checkContacts()){
+                fullSuctionContactPub_->publish(suction_msg); 
+                contactCounter_++; 
+            }
+            // uses current pose!
+            if (contactCounter_ > 5)
+            {
+                double cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
+                cmdVel_.linear.z = cmd_z; 
+            }
+
 
         }
 
         cmdVelPub_->publish(cmdVel_); 
 
 
-        // Publish speed
 
 
-
-        std_msgs::msg::Bool suction_msg; 
         // Publish contacts if all 5 are touching object
         //RCLCPP_INFO_STREAM(this->get_logger(), "bottom: " << bottomC);
 
         // Check during service call and return true or false depends on current value
+        
         if(bottomC && rightC && leftC && topC && centerC)
         {
             suction_msg.data = true; 
-            fullSuctionContactPub_->publish(suction_msg); 
+            //fullSuctionContactPub_->publish(suction_msg); 
             //gripperCmdSuctionPub_->publish(suction_msg); 
             RCLCPP_INFO(this->get_logger(),"Suction ready!");    
 
@@ -506,7 +525,8 @@ void UavCtl::timer_callback()
             suction_msg.data = false; 
             fullSuctionContactPub_->publish(suction_msg); 
             //RCLCPP_INFO(this->get_logger(),"Suction not ready!");  
-        }          
+        } 
+               
        
     } 
 
@@ -534,6 +554,78 @@ void UavCtl::limitCommand(double& cmd, double limit)
     if (cmd < - limit) {
         cmd = -limit; 
     }
+}
+
+bool UavCtl::checkContacts() const
+{   
+    bool contacts = bottomC || rightC || leftC || topC || centerC;
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Contacts: " << contacts); 
+    printContacts(); 
+
+    return contacts; 
+}
+
+int UavCtl::getNumContacts() const
+{
+    int numContacts = (int)bottomC + (int)rightC + (int)leftC + (int)topC + (int)centerC;
+
+    return numContacts; 
+
+}
+
+void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)
+{   
+    cmd_x = 0.0; cmd_y = 0.0;
+
+    if(topC && !bottomC){
+        cmd_x = 0.15; 
+    }
+
+    if(!topC && bottomC){
+        cmd_x = -0.15; 
+    }
+
+    //if(!rightC && leftC){
+    //    cmd_y = 0.1;
+    //}
+
+    //if(rightC && !leftC){
+    //    cmd_y = -0.1; 
+    //}
+
+
+
+}
+
+void UavCtl::printContacts() const
+{
+
+    std::string strTopC, strBottomC, strRightC, strLeftC, strCenterC; 
+
+    if(topC){
+        strTopC = "O";
+    }else{strTopC = "X";}
+    if(bottomC){
+        strBottomC = "O";
+    }else{strBottomC = "X";}
+    if(rightC){
+        strRightC = "O";
+    }else{strRightC = "X";}
+    if(leftC){
+        strLeftC = "O";
+    }else{strLeftC = "X";}
+    if(centerC){
+        strCenterC = "O";
+    }else{strCenterC = "X";}
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "\t \t" << "==========================" << "\t \t"); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "\t \t" << strTopC << "\t \t"); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "\t \t" << strLeftC << " " << strCenterC << " " << strRightC);
+    RCLCPP_INFO_STREAM(this->get_logger(), "\t \t" << strBottomC << "\t \t"); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "\t \t" << "==========================" << "\t \t"); 
+
+
 }
 
 

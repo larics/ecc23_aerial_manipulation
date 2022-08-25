@@ -113,6 +113,7 @@ class UavCtl: public rclcpp::Node
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
+        int                                                                 contactCounter_=0; 
         float                                                               roll, pitch;
         float                                                               currentYaw_, cmdYaw_;  
         geometry_msgs::msg::PoseStamped                                     currPose_; 
@@ -128,7 +129,8 @@ class UavCtl: public rclcpp::Node
             JOYSTICK = 1, 
             POSITION = 2, 
             SERVOING = 3, 
-            APPROACH = 4       
+            APPROACH = 4, 
+            GRASP = 5       
         };
 
         enum state                                                          current_state_ = IDLE;
@@ -172,6 +174,11 @@ class UavCtl: public rclcpp::Node
         // getters
         float getCurrentYaw(); 
         float getCmdYaw(); 
+        bool checkContacts() const; 
+        void printContacts() const; 
+        int getNumContacts() const; 
+        void generateContactRef(double& cmd_x, double& cmd_y); 
+
         
 
 };
