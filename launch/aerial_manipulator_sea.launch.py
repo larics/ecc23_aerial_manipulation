@@ -57,8 +57,8 @@ def launch(context, *args, **kwargs):
                 'Y': '0', 
                 'gripper': 'mbzirc_suction_gripper_light', 
                 # slot3 is a bottom slot
-                #'slot3': 'mbzirc_rgbd_camera', 
-                #'slot0' : 'mbzirc_hd_camera',
+                'slot3': 'mbzirc_rgbd_camera', 
+                'slot0' : 'mbzirc_hd_camera',
                 'type':'uav2', 
                 'flightTime': '6000', 
                 #'capacity': '100.0' #'flightTime':'1200'     # This is probably a parameter to enable flightTime duration (battery)
@@ -201,6 +201,12 @@ def launch(context, *args, **kwargs):
         output="screen" 
     )
 
+    hsv_filter_node = Node(
+        package="cv_hsv_detection", 
+        executable="hsv_filter", 
+        output="screen"
+    )
+
     ## Movements
     duration_ = 5
     uav_takeoff_action = create_takeoff_action("uav1", duration_); 
@@ -237,6 +243,7 @@ def launch(context, *args, **kwargs):
             uav_joy_node, 
             uav1_ctl_node, 
             uav3_ctl_node, 
+            hsv_filter_node
             #uav_first_movement, 
             #uav_second_movement, 
             #uav_third_movement, 

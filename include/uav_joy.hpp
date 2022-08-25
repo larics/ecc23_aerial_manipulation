@@ -32,6 +32,7 @@ class UavJoy: public rclcpp::Node
 	private:
 
 		// vars
+		bool 		enableJoy_; 
 		mutable int scale_factor;  
 	    
 		// publishers	
@@ -52,13 +53,17 @@ class UavJoy: public rclcpp::Node
 		rclcpp::Client<std_srvs::srv::Empty>::SharedPtr		stopSuctionClient_; 
 
 		void init(); 
-		void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const; 
+		void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg); 
 		void choose_uav(const mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Request::SharedPtr req,
 						 mbzirc_aerial_manipulation_msgs::srv::ChooseUav::Response::SharedPtr res); 
 
 		// Setting them as const to be usable by joy_callback which is also const
-		void setScaleFactor(int value) const; 
+		void setScaleFactor(int value); 
 		int getScaleFactor() const; 
+		void setEnableJoy(bool val); 
+		bool getEnableJoy() const; 
+
+		// TODO: Add service to turn joystick on and off
 
 };
 

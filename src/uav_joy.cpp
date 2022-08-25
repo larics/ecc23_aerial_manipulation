@@ -7,6 +7,8 @@ UavJoy::UavJoy(): Node("uav_joy")
 
     setScaleFactor(1); 
 
+    enableJoy_ = true; 
+
 	// TODO: Add clients into initialization 
 	// TODO: Change service to integrate type of UAV into consideration 
 }
@@ -26,7 +28,7 @@ void UavJoy::init()
     RCLCPP_INFO(this->get_logger(), "Initialized uav_joy"); 
 }
 
-void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
+void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) 
 {   
     
 	float pitch; float thrust; float roll; float yaw; 
@@ -34,6 +36,26 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
 	
 	roll = axes_.at(3); pitch = axes_.at(4); 
 	yaw = axes_.at(0); thrust = axes_.at(1);     
+
+    // Enabling joystick functionality
+    // Arrow up + R1 --> turnsOff
+    if (msg->axes.at(7) == 1 && msg->buttons.at(4))
+    { 
+        RCLCPP_INFO(this->get_logger(), "Turning joystick on!");    
+        setEnableJoy(true); 
+    }
+
+    // Arrow up + R2 --> turnsOn
+    if (msg->axes.at(7) == 1 && msg->axes.at(2) == -1)
+    {
+        
+        RCLCPP_INFO(this->get_logger(), "Turning joystick off!"); 
+        setEnableJoy(false); 
+    }
+
+    enableJoy_ = getEnableJoy(); 
+
+
 
     float sF_; 
     int sF = getScaleFactor();
@@ -49,14 +71,17 @@ void UavJoy::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) const
         RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[OPERATION MODE]: Slow!"); 
     }
 
+
 	// Create teleop msg
 	auto teleop_msg 	    = geometry_msgs::msg::Twist(); 
 	teleop_msg.linear.x	    = pitch  * sF_; 
 	teleop_msg.linear.y 	= roll   * sF_; 
 	teleop_msg.linear.z	    = thrust * sF_; 
 	teleop_msg.angular.z 	= yaw    * sF_; 
-
-	cmdVelPub_->publish(teleop_msg); 
+    
+    if (enableJoy_){
+        cmdVelPub_->publish(teleop_msg); 
+    }
     
     // [ ] --> open gripper
     if (msg->buttons.at(0) == 1){                    
@@ -112,7 +137,7 @@ void UavJoy::choose_uav(const mbzirc_aerial_manipulation_msgs::srv::ChooseUav::R
 }
 
 // Methods that set scale factor 
-void UavJoy::setScaleFactor(int value) const
+void UavJoy::setScaleFactor(int value)
 {
     scale_factor = value; 
 }
@@ -120,4 +145,14 @@ void UavJoy::setScaleFactor(int value) const
 int UavJoy::getScaleFactor() const
 {
     return scale_factor; 
+}
+
+void UavJoy::setEnableJoy(bool val) 
+{
+    enableJoy_ = val; 
+}
+
+bool UavJoy::getEnableJoy() const
+{
+    return enableJoy_; 
 }

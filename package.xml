@@ -19,7 +19,6 @@
   
   <member_of_group>rosidl_interface_packages</member_of_group>
   
-  <build_type>ament_cmake</build_type>
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>std_msgs</depend>
@@ -32,6 +31,8 @@
   <depend>mbzirc_aerial_manipulation_msgs</depend>
   
   <export>
+    <build_type>ament_cmake</build_type> 
+
   </export>
 
   <!-- As a generic dependency -->

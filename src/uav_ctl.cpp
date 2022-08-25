@@ -53,6 +53,10 @@ void UavCtl::init()
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
 
+    //Servoing state 
+    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
+
+
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     
@@ -221,6 +225,35 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 }
 
+void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+
+{
+
+    // Timestamp comparison
+
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved first detected_obj_callback"); 
+    detObjPose_.header = msg->header; 
+    detObjPose_.point.x = msg->point.z;
+    detObjPose_.point.y = msg->point.y; 
+    detObjPose_.point.z = - msg->point.x; 
+
+    float x = detObjPose_.point.x; 
+    float y = detObjPose_.point.y;
+    float z = detObjPose_.point.z; 
+
+    bool cond_x = std::abs(x) < 1.0;
+    bool cond_y = std::abs(y) < 1.0;
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "x: " << std::abs(x) << "\ny: " << std::abs(y) << "\nz" << z); 
+    //RCLCPP_INFO_STREAM(this->get_logger(), "abs dist y" << std::abs(y)); 
+
+
+    if(cond_x && cond_y ){
+        current_state_= SERVOING; 
+    }
+
+}
+
 void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved bottom suction"); 
@@ -344,8 +377,11 @@ void UavCtl::timer_callback()
 
     // this PID is used only for controlling z axis
     if (nodeInitialized){
+        
+        geometry_msgs::msg::Twist cmdVel_;
 
-        if(cmdReciv){
+        if(cmdReciv && current_state_ == POSITION){
+        // TODO: Add in fuctions!    
         // Publish current pose difference
         get_pose_dist(); 
         absPoseDistPub_->publish(poseDist_);
@@ -380,7 +416,6 @@ void UavCtl::timer_callback()
         // RCLCPP_INFO_STREAM(this->get_logger(), "cos(yaw)" << cos(getCurrentYaw())); 
         // RCLCPP_INFO_STREAM(this->get_logger(), "sin(yaw)" << sin(getCurrentYaw())); 
     
-        geometry_msgs::msg::Twist cmdVel_;
         cmdVel_.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
         cmdVel_.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
         cmdVel_.linear.z = cmd_z; 
@@ -390,7 +425,70 @@ void UavCtl::timer_callback()
         cmdVel_.angular.z = cmd_yaw;   
 
         cmdVelPub_->publish(cmdVel_);
+
+
         }
+
+
+        if (current_state_ == SERVOING){
+
+            RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
+
+            // P gain
+            float Kp_xy = 0.5;
+            float Kp_z = 0.5; 
+            float limit_xy = 0.5; 
+            float limit_z = 0.4; 
+
+            // Align x, y
+            double cmd_x = - Kp_xy * (0 - detObjPose_.point.x); 
+            limitCommand(cmd_x, limit_xy);
+            cmdVel_.linear.x = cmd_x;  
+            double cmd_y = - Kp_xy * (0 - detObjPose_.point.y); 
+            limitCommand(cmd_y, limit_xy);
+            cmdVel_.linear.y = cmd_y; 
+
+            // Send z
+            if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
+            {
+                double cmd_z = Kp_z * (0.35 - std::abs(detObjPose_.point.z));
+                limitCommand(cmd_z, limit_z); 
+                cmdVel_.linear.z = cmd_z;
+            }
+            
+            if (std::abs(detObjPose_.point.z) < 0.3) {
+                cmdVel_.linear.x = 0.0; 
+                cmdVel_.linear.y = 0.0; 
+                cmdVel_.linear.z = 0.0;             
+                current_state_ = APPROACH; 
+               
+            }
+
+
+
+        }
+
+        if (current_state_ == APPROACH)
+        {   
+            cmdVel_.linear.z = -0.2; 
+            current_state_ == GRASP
+            
+        }
+
+        if (current_state_ == GRASP){
+
+            suction_msg.data = true; 
+            fullSuctionContactPub_->publish(suction_msg); 
+            double cmd_z = Kp_z * (3.0 - currPose_.pose.position.z);
+
+        }
+
+        cmdVelPub_->publish(cmdVel_); 
+
+
+        // Publish speed
+
+
 
         std_msgs::msg::Bool suction_msg; 
         // Publish contacts if all 5 are touching object
@@ -424,6 +522,18 @@ float UavCtl::getCurrentYaw()
 float UavCtl::getCmdYaw()
 {
     return cmdYaw_; 
+}
+
+void UavCtl::limitCommand(double& cmd, double limit)
+{
+    if (cmd > limit)
+    {
+        cmd = limit;
+    }
+
+    if (cmd < - limit) {
+        cmd = -limit; 
+    }
 }
 
 
