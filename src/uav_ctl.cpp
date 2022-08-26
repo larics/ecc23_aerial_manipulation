@@ -501,6 +501,8 @@ void UavCtl::timer_callback()
             float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
             double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
             double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+            cmdVel_.linear.x = cmd_x;
+            cmdVel_.linear.y = cmd_y; 
             // Send z
             if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
             {
@@ -605,6 +607,7 @@ void UavCtl::timer_callback()
                 double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
+                cmdVel_.linear.z = 0.0; 
                 // Send z
                 if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
                 {   
