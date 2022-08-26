@@ -32,9 +32,11 @@ void UavCtl::init()
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
+    currentStatePub_       = this->create_publisher<std_msgs::msg::String>(ns_ + std::string("/state"), 1); 
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>(ns_ + std::string("/pose_dist"), 1); 
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/all"), 1); 
+
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -52,6 +54,7 @@ void UavCtl::init()
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
+    changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>(ns_ + std::string("/change_state"), std::bind(&UavCtl::change_state, this, _1, _2)); 
 
     //Servoing state 
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
@@ -341,6 +344,29 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
 
 }
 
+bool UavCtl::change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeState::Request::SharedPtr req, 
+                          mbzirc_aerial_manipulation_msgs::srv::ChangeState::Response::SharedPtr res)
+{
+
+    // Why would this be boolean? 
+
+    auto itr = std::find(std::begin(stateNames), std::end(stateNames), req->state);
+    
+
+    if ( itr != std::end(stateNames))
+    {
+        int wantedIndex_ = std::distance(stateNames, itr); 
+        current_state_  = (state)wantedIndex_; 
+        RCLCPP_INFO_STREAM(this->get_logger(), "Switching state!");
+        res->success = true;  
+    }else{
+        RCLCPP_INFO_STREAM(this->get_logger(), "Failed switching to state " << req->state); 
+        res->success = false; 
+    } 
+        
+
+}
+
 void UavCtl::get_pose_dist()
 {
     poseError_.position.x = std::abs(cmdPose_.pose.position.x - currPose_.pose.position.x);
@@ -525,10 +551,31 @@ void UavCtl::timer_callback()
                 cmdVel_.linear.z = cmd_z; 
             }
 
+            current_state_ == GO_TO_DROP; 
+
 
         }
 
+        if (current_state_ = GO_TO_DROP){
+
+            // 1. align orientation
+            // TODO: Enable only sending yaw 
+
+            // 2. wait for arm command 
+            // poseGot! 
+
+            // goToThatPose somehow
+
+            // go down
+
+            // leave object
+        }
+
+        // Publish command velocity
         cmdVelPub_->publish(cmdVel_); 
+        // Publish current state
+        std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 
+        currentStatePub_->publish(state_msg); 
 
     } 
 

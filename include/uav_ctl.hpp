@@ -33,6 +33,7 @@
 //* custom msgs
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_euler.hpp"
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_error.hpp"
+#include "mbzirc_aerial_manipulation_msgs/srv/change_state.hpp"
 
 //* srvs
 #include "std_srvs/srv/trigger.hpp"
@@ -42,6 +43,8 @@
 #include <jlb_pid/controller.hpp>
 #include <jlb_pid/pid.hpp>
 #include <jlb_pid/config.hpp>
+
+#define stringify( name ) # name
 
 
 using namespace std::chrono_literals;  
@@ -70,7 +73,9 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                            gripperCmdPosLeftPub_; 
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr                            gripperCmdPosRightPub_; 
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               gripperCmdSuctionPub_; 
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_;
+        rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
+
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
@@ -85,10 +90,11 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    openGripperSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    closeGripperSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    startSuctionSrv_; 
-        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                    stopSuctionSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    closeGripperSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    startSuctionSrv_; 
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    stopSuctionSrv_; 
+        rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>::SharedPtr       changeStateSrv_; 
         
         // timers
         rclcpp::TimerBase::SharedPtr                                        timer_;
@@ -132,9 +138,26 @@ class UavCtl: public rclcpp::Node
             SERVOING = 3, 
             APPROACH = 4, 
             GRASP = 5, 
-            ALIGN_GRASP = 6      
+            ALIGN_GRASP = 6, 
+            LIFT = 7, 
+            GO_TO_DROP = 8    
         };
 
+         // depends on num states
+        const char* stateNames[9] = 
+        {
+            stringify( IDLE ), 
+            stringify( JOYSTICK ), 
+            stringify( POSITION ), 
+            stringify( SERVOING ), 
+            stringify( APPROACH ), 
+            stringify( GRASP ), 
+            stringify( ALIGN_GRASP ), 
+            stringify( LIFT ), 
+            stringify( GO_TO_DROP )
+        }; 
+
+      
         enum state                                                          current_state_ = IDLE;
 
 
@@ -170,6 +193,8 @@ class UavCtl: public rclcpp::Node
                            std_srvs::srv::Empty::Response::SharedPtr res); 
         bool stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
                            std_srvs::srv::Empty::Response::SharedPtr res); 
+        bool change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeState::Request::SharedPtr req, 
+                            mbzirc_aerial_manipulation_msgs::srv::ChangeState::Response::SharedPtr res); 
 
         static void limitCommand(double& cmd, double limit);                    
 
@@ -180,6 +205,9 @@ class UavCtl: public rclcpp::Node
         void printContacts() const; 
         int getNumContacts() const; 
         void generateContactRef(double& cmd_x, double& cmd_y); 
+
+       
+
 
         
 
