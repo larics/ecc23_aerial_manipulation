@@ -25,6 +25,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include "sensor_msgs/msg/imu.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -88,6 +89,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                rightContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                centerContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
@@ -128,6 +130,10 @@ class UavCtl: public rclcpp::Node
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
+        sensor_msgs::msg::Imu                                               currImuData_; 
+
+        double                                                              lift_open_loop_z_ = 0.0;
+        double                                                              lift_open_loop_v_ = 0.0;
 
             // State machine
         enum state 
@@ -176,7 +182,8 @@ class UavCtl: public rclcpp::Node
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
-        void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);    
+        void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   
+        void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void left_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 

@@ -42,6 +42,8 @@ void UavCtl::init()
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
     currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>(ns_ + std::string("/pose_ref"), 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
+
+    imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>(ns_ + std::string("/imu/data"), 1, std::bind(&UavCtl::imu_callback, this, _1)); 
     // suction_related
     bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/bottom"), 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
     leftContactSub_        = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/left"), 1, std::bind(&UavCtl::left_contact_callback, this, _1)); 
@@ -288,6 +290,12 @@ void UavCtl::top_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved top suction"); 
     leftC = msg->data; 
 }
+
+void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "Recieved imu"); 
+    currImuData_ = *msg; 
+}  
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                               std_srvs::srv::Empty::Response::SharedPtr res)
@@ -547,8 +555,7 @@ void UavCtl::timer_callback()
             }
             if (contactCounter_ > 15)
             {
-                double cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
-                cmdVel_.linear.z = cmd_z; 
+                current_state_ = LIFT;
             }
 
             current_state_ == GO_TO_DROP; 
@@ -571,7 +578,26 @@ void UavCtl::timer_callback()
             // leave object
         }
 
-        // Publish command velocity
+
+        if (current_state_ == LIFT)
+        {
+            double lift_z_ref = 2.0; 
+            if (std::abs(lift_open_loop_z_ - lift_z_ref) > 0.1)
+            {
+                double KP_z = 0.1;
+                double cmd_z = KP_z*(lift_z_ref - lift_open_loop_z_);
+                limitCommand(cmd_z, 2);
+                cmdVel_.linear.z = cmd_z; 
+                double dt_imu = 0.01;
+                double acc_z = currImuData_.linear_acceleration.z - 9.81;
+                lift_open_loop_z_ += dt_imu * dt_imu / 2.0 *acc_z;
+                std::cout << "cmd_z = " << cmd_z << "\n";
+                std::cout << "(-currImuData_.linear_acceleration.z + 9.81) = " << (-currImuData_.linear_acceleration.z + 9.81) << "\n";
+                std::cout << "lift_open_loop_z_ = " << lift_open_loop_z_ << "\n";
+                std::cout << "-------------------\n";
+            }
+        }
+
         cmdVelPub_->publish(cmdVel_); 
         // Publish current state
         std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 
