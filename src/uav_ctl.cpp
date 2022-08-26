@@ -23,7 +23,7 @@ void UavCtl::init()
     ns_ = this->get_namespace(); 	
 
     // Parameters
-    this->declare_parameter<std::string>("world_name", "coast");
+    this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
     
     // Publishers 
