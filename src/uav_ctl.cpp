@@ -263,11 +263,14 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 
 void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
 {
-    usvPosReciv = true;
-    dropOffPoint_.header = msg->header;  
-    dropOffPoint_.point.x = msg->point.x;
-    dropOffPoint_.point.y = msg->point.y; 
-    dropOffPoint_.point.z = msg->point.z; 
+    if(current_state_ == DROP || current_state_ == LIFT)
+    {
+        usvPosReciv = true;
+        dropOffPoint_.header = msg->header;  
+        dropOffPoint_.point.x = msg->point.x;
+        dropOffPoint_.point.y = msg->point.y; 
+        dropOffPoint_.point.z = msg->point.z; 
+    }
 }
 
 void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -580,12 +583,12 @@ void UavCtl::timer_callback()
 
             RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
             // Go to height 2
-            float Kp_z = 0.5; float Kp_yaw = 0.5; 
-            cmd_z = calcPropCmd(Kp_z, 2.0, currPose_.pose.position.z, 1.0); 
+            float Kp_z = 1.0; float Kp_yaw = 0.5; 
+            cmd_z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 1.0); 
             cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
             cmdVel_.linear.z = cmd_z; 
             cmdVel_.angular.z = cmd_yaw; 
-            if (std::abs(cmd_yaw) < 0.05 && std::abs(cmd_z) < 0.05)
+            if (std::abs(cmd_yaw) < 0.05 && usvPosReciv)
             {
                 current_state_ = GO_TO_DROP; 
             }
@@ -606,17 +609,12 @@ void UavCtl::timer_callback()
                 double cmd_x = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
                 double cmd_y = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
 
-
-                std::cout << "cmd_x = " << cmd_x << "\n";
-                std::cout << "cmd_y = " << cmd_y << "\n\n";
-
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
                 cmdVel_.linear.z = 0.0; 
                 // Send z
                 if(std::abs(dropOffPoint_.point.x) < 0.1 && std::abs(dropOffPoint_.point.y < 0.1))
                 {   
-                    std::cout << "usli u dropofanje\n";
                     double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(dropOffPoint_.point.z), limit_z); 
                     cmdVel_.linear.z = cmd_z;
                 }
