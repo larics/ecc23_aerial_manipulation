@@ -83,6 +83,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
+        rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
         rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr    cmdPoseSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                bottomContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                leftContactSub_; 
@@ -129,6 +130,7 @@ class UavCtl: public rclcpp::Node
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
+        geometry_msgs::msg::PointStamped                                    dropOffPoint_; 
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
         sensor_msgs::msg::Imu                                               currImuData_; 
@@ -147,7 +149,8 @@ class UavCtl: public rclcpp::Node
             GRASP = 5, 
             ALIGN_GRASP = 6, 
             LIFT = 7, 
-            GO_TO_DROP = 8    
+            GO_TO_DROP = 8, 
+            DROP = 9
         };
 
          // depends on num states
@@ -162,6 +165,7 @@ class UavCtl: public rclcpp::Node
             stringify( ALIGN_GRASP ), 
             stringify( LIFT ), 
             stringify( GO_TO_DROP )
+            stringify( DROP )
         }; 
 
       
@@ -184,7 +188,9 @@ class UavCtl: public rclcpp::Node
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
         void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   
+        void det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
+
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void left_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
@@ -213,6 +219,8 @@ class UavCtl: public rclcpp::Node
         void printContacts() const; 
         int getNumContacts() const; 
         void generateContactRef(double& cmd_x, double& cmd_y); 
+        double calcPropCmd(double gainP, double cmd_sp, double cmd_mv, double limit_command); 
+
 
        
 

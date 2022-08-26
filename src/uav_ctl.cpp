@@ -61,6 +61,8 @@ void UavCtl::init()
     //Servoing state 
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
 
+    // USV integration (TODO: Think how to decouple control and integration)
+    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -259,6 +261,15 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 
 }
 
+void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+{
+    usvPosReciv = true;
+    dropOffPoint_.header = msg->header;  
+    dropOffPoint_.point.x = msg->point.x;
+    dropOffPoint_.point.y = msg->point.y; 
+    dropOffPoint_.point.z = msg->point.z; 
+}
+
 void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
 {
     // Positioning of suction gripper is not synonimous to real positions so we 
@@ -296,6 +307,7 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved imu"); 
     currImuData_ = *msg; 
 
+    // this can be generalized
     tf2::Quaternion q(currImuData_.orientation.x, 
                       currImuData_.orientation.y, 
                       currImuData_.orientation.z, 
@@ -485,22 +497,14 @@ void UavCtl::timer_callback()
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
             // P gain
-            float Kp_xy = 0.5;
-            float Kp_z = 0.5; 
-            float limit_xy = 0.5; 
-            float limit_z = 0.4; 
-            // Align x, y
-            double cmd_x = - Kp_xy * (0 - detObjPose_.point.x); 
-            limitCommand(cmd_x, limit_xy);
-            cmdVel_.linear.x = cmd_x;  
-            double cmd_y = - Kp_xy * (0 - detObjPose_.point.y); 
-            limitCommand(cmd_y, limit_xy);
-            cmdVel_.linear.y = cmd_y; 
+            float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
+            float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
+            double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
+            double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
             // Send z
             if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
             {
-                double cmd_z = Kp_z * (0.35 - std::abs(detObjPose_.point.z));
-                limitCommand(cmd_z, limit_z); 
+                double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(detObjPose_.point.z), limit_z); 
                 cmdVel_.linear.z = cmd_z;
             }
             
@@ -508,8 +512,7 @@ void UavCtl::timer_callback()
                 cmdVel_.linear.x = 0.0; 
                 cmdVel_.linear.y = 0.0; 
                 cmdVel_.linear.z = 0.0;             
-                current_state_ = APPROACH; 
-               
+                current_state_ = APPROACH;                
             }
 
         }
@@ -568,7 +571,6 @@ void UavCtl::timer_callback()
                 current_state_ = LIFT;
             }
 
-
         }
 
         if (current_state_ == LIFT)
@@ -577,13 +579,10 @@ void UavCtl::timer_callback()
             RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
             // Go to height 2
             float Kp_z = 0.5; float Kp_yaw = 0.5; 
-            cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
+            cmd_z = calcPropCmd(Kp_z, 2.0, currPose_.pose.position.z, 1.0); 
+            cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
             cmdVel_.linear.z = cmd_z; 
-            // Heading to north
-            cmd_yaw = Kp_yaw * (0.0 - imuMeasuredYaw_); 
-            limitCommand(cmd_yaw, 0.25); 
             cmdVel_.angular.z = cmd_yaw; 
-
             if (std::abs(cmd_yaw) < 0.05 && std::abs(cmd_z) < 0.05)
             {
                 current_state_ = GO_TO_DROP; 
@@ -594,15 +593,44 @@ void UavCtl::timer_callback()
         if (current_state_ == GO_TO_DROP)
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] Active!");
+            // Compare time to know when time recieved
             if(usvPosReciv){
                 // goToPose with heading
                 // Add time check and possible timeout
-                RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Recieved first pose!");
-            }else{
-                RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Waiting for guidance!"); 
-            }
+                // Could basically reuse SERVOING state (however than we have to have determination which SERVOING it is)
+                // Align x, y
+                float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
+                float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
+                double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
+                double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+                cmdVel_.linear.x = cmd_x;
+                cmdVel_.linear.y = cmd_y; 
+                // Send z
+                if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
+                {   
+                    double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(detObjPose_.point.z), limit_z); 
+                    cmdVel_.linear.z = cmd_z;
+                }
+                
+                if (std::abs(detObjPose_.point.z) < 0.3) {
+                    cmdVel_.linear.x = 0.0; 
+                    cmdVel_.linear.y = 0.0; 
+                    cmdVel_.linear.z = 0.0;             
+                    current_state_ = DROP; 
+                
+                }                
+                    RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Recieved pose which is guiding me!");
+                }else{
+                    RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Waiting for guidance!"); 
+                }
         }
 
+        if( current_state_ == DROP){
+            RCLCPP_INFO(this->get_logger(), "[DROP] Dropping food!");
+            suction_msg.data = false; 
+            gripperCmdSuctionPub_->publish(suction_msg); 
+
+        }
 
         cmdVelPub_->publish(cmdVel_); 
         // Publish current state
@@ -612,7 +640,6 @@ void UavCtl::timer_callback()
     } 
 
 }   
-
 
 // GETTERS
 float UavCtl::getCurrentYaw()
@@ -655,6 +682,14 @@ int UavCtl::getNumContacts() const
     return numContacts; 
 
 }
+
+double UavCtl::calcPropCmd(double Kp, double cmd_sp, double cmd_mv, double limit_command)
+{
+    double cmd = Kp * (cmd_sp - cmd_mv);
+    limitCommand(cmd, limit_command); 
+    return cmd; 
+}
+
 
 // redundant
 void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)
