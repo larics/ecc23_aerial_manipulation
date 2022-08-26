@@ -295,6 +295,19 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved imu"); 
     currImuData_ = *msg; 
+
+    tf2::Quaternion q(currImuData_.orientation.x, 
+                      currImuData_.orientation.y, 
+                      currImuData_.orientation.z, 
+                      currImuData_.orientation.w); 
+    
+    tf2::Matrix3x3 m(q);
+
+    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
+    double roll, pitch, yaw; 
+    m.getRPY(roll, pitch, yaw);   
+
+    imuMeasuredYaw_ = yaw; 
 }  
 
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -411,6 +424,7 @@ void UavCtl::timer_callback()
     // get current uav_state
     double cmd_x; double cmd_y; double cmd_z; double cmd_yaw; 
     geometry_msgs::msg::Pose msg; 
+    std_msgs::msg::Bool suction_msg; 
 
     // this PID is used only for controlling z axis
     if (nodeInitialized){
@@ -467,7 +481,6 @@ void UavCtl::timer_callback()
         cmdVelPub_->publish(cmdVel_);
         }
 
-        // SERVOING
         if (current_state_ == SERVOING)
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
@@ -501,7 +514,6 @@ void UavCtl::timer_callback()
 
         }
 
-        // APPROACH
         if (current_state_ == APPROACH)
         {   
             RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
@@ -516,9 +528,9 @@ void UavCtl::timer_callback()
             
         }
 
-        // ALIGN GRASP
         if (current_state_ == ALIGN_GRASP)
-        { 
+        {   
+            // Name is redundant atm
             RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] in progress. "); 
             RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] num_contacts: " << getNumContacts()); 
             // Apply constant pressure on gripper and move it left/right until 
@@ -534,8 +546,6 @@ void UavCtl::timer_callback()
             }
         }
 
-        // GRASP
-        std_msgs::msg::Bool suction_msg; 
         if (current_state_ == GRASP)
         {
             float Kp_z = 0.5; 
@@ -558,45 +568,41 @@ void UavCtl::timer_callback()
                 current_state_ = LIFT;
             }
 
-            current_state_ == GO_TO_DROP; 
-
 
         }
-
-        if (current_state_ = GO_TO_DROP){
-
-            // 1. align orientation
-            // TODO: Enable only sending yaw 
-
-            // 2. wait for arm command 
-            // poseGot! 
-
-            // goToThatPose somehow
-
-            // go down
-
-            // leave object
-        }
-
 
         if (current_state_ == LIFT)
         {
-            double lift_z_ref = 2.0; 
-            if (std::abs(lift_open_loop_z_ - lift_z_ref) > 0.1)
+
+            RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
+            // Go to height 2
+            float Kp_z = 0.5; float Kp_yaw = 0.5; 
+            cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
+            cmdVel_.linear.z = cmd_z; 
+            // Heading to north
+            cmd_yaw = Kp_yaw * (0.0 - imuMeasuredYaw_); 
+            limitCommand(cmd_yaw, 0.25); 
+            cmdVel_.angular.z = cmd_yaw; 
+
+            if (std::abs(cmd_yaw) < 0.05 && std::abs(cmd_z) < 0.05)
             {
-                double KP_z = 0.1;
-                double cmd_z = KP_z*(lift_z_ref - lift_open_loop_z_);
-                limitCommand(cmd_z, 2);
-                cmdVel_.linear.z = cmd_z; 
-                double dt_imu = 0.01;
-                double acc_z = currImuData_.linear_acceleration.z - 9.81;
-                lift_open_loop_z_ += dt_imu * dt_imu / 2.0 *acc_z;
-                std::cout << "cmd_z = " << cmd_z << "\n";
-                std::cout << "(-currImuData_.linear_acceleration.z + 9.81) = " << (-currImuData_.linear_acceleration.z + 9.81) << "\n";
-                std::cout << "lift_open_loop_z_ = " << lift_open_loop_z_ << "\n";
-                std::cout << "-------------------\n";
+                current_state_ = GO_TO_DROP; 
+            }
+
+        }
+
+        if (current_state_ == GO_TO_DROP)
+        {
+            RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] Active!");
+            if(usvPosReciv){
+                // goToPose with heading
+                // Add time check and possible timeout
+                RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Recieved first pose!");
+            }else{
+                RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Waiting for guidance!"); 
             }
         }
+
 
         cmdVelPub_->publish(cmdVel_); 
         // Publish current state
