@@ -23,7 +23,7 @@ void UavCtl::init()
     ns_ = this->get_namespace(); 	
 
     // Parameters
-    this->declare_parameter<std::string>("world_name", "coast");
+    this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
     
     // Publishers 
@@ -577,8 +577,13 @@ void UavCtl::timer_callback()
             RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
             // Go to height 2
             float Kp_z = 0.5; float Kp_yaw = 0.5; 
-            cmd_z = Kp_z * (2.0 - currPose_.pose.position.z);
-            cmdVel_.linear.z = cmd_z; 
+            cmd_z = Kp_z * (5.0 - currPose_.pose.position.z);
+            cmd_x = 0.0;
+            cmd_y = 0.0;
+
+            cmdVel_.linear.z = cmd_z;
+            cmdVel_.linear.x = cmd_x;
+            cmdVel_.linear.y = cmd_y; 
             // Heading to north
             cmd_yaw = Kp_yaw * (0.0 - imuMeasuredYaw_); 
             limitCommand(cmd_yaw, 0.25); 
