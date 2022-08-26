@@ -603,29 +603,36 @@ void UavCtl::timer_callback()
                 // Align x, y
                 float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
                 float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
-                double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
-                double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+                double cmd_x = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
+                double cmd_y = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
+
+
+                std::cout << "cmd_x = " << cmd_x << "\n";
+                std::cout << "cmd_y = " << cmd_y << "\n\n";
+
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
                 cmdVel_.linear.z = 0.0; 
                 // Send z
-                if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
+                if(std::abs(dropOffPoint_.point.x) < 0.1 && std::abs(dropOffPoint_.point.y < 0.1))
                 {   
-                    double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(detObjPose_.point.z), limit_z); 
+                    std::cout << "usli u dropofanje\n";
+                    double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(dropOffPoint_.point.z), limit_z); 
                     cmdVel_.linear.z = cmd_z;
                 }
                 
-                if (std::abs(detObjPose_.point.z) < 0.3) {
+                if (std::abs(dropOffPoint_.point.z) < 0.3) {
                     cmdVel_.linear.x = 0.0; 
                     cmdVel_.linear.y = 0.0; 
                     cmdVel_.linear.z = 0.0;             
                     current_state_ = DROP; 
                 
-                }                
-                    RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Recieved pose which is guiding me!");
-                }else{
-                    RCLCPP_INFO(this->get_logger(), "[GO_TO_DROP] Waiting for guidance!"); 
-                }
+                }    
+            }
+            else 
+            {
+                std::cout << "nema poze\n";
+            }
         }
 
         if( current_state_ == DROP){
