@@ -126,7 +126,8 @@ class UavCtl: public rclcpp::Node
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
         int                                                                 contactCounter_=0; 
         float                                                               roll, pitch;
-        float                                                               currentYaw_, cmdYaw_,  imuMeasuredYaw_; 
+        float                                                               currentYaw_, cmdYaw_;
+        float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_; 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 

@@ -322,6 +322,8 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     double roll, pitch, yaw; 
     m.getRPY(roll, pitch, yaw);   
 
+    imuMeasuredPitch_ = pitch; 
+    imuMeasuredRoll_ = roll; 
     imuMeasuredYaw_ = yaw; 
 }  
 
@@ -500,8 +502,8 @@ void UavCtl::timer_callback()
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
             // P gain
-            float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
-            float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
+            float Kp_xy = 0.5; float Kp_z = 1.5; // servo gains
+            float limit_xy = 0.5; float limit_z = 0.5; // servo limits 
             double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
             double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
             cmdVel_.linear.x = cmd_x;
@@ -509,14 +511,14 @@ void UavCtl::timer_callback()
             // Send z
             if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
             {
-                double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(detObjPose_.point.z), limit_z); 
+                double cmd_z = calcPropCmd(Kp_z, 0.0, std::abs(detObjPose_.point.z), limit_z); 
                 cmdVel_.linear.z = cmd_z;
             }
             
-            if (std::abs(detObjPose_.point.z) < 0.3) {
+            if (std::abs(detObjPose_.point.z) < 0.4) {
                 cmdVel_.linear.x = 0.0; 
                 cmdVel_.linear.y = 0.0; 
-                cmdVel_.linear.z = 0.0;             
+                //cmdVel_.linear.z = 0.0;             
                 current_state_ = APPROACH;                
             }
 
@@ -525,8 +527,8 @@ void UavCtl::timer_callback()
         if (current_state_ == APPROACH)
         {   
             RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
-            cmdVel_.linear.x = -0.1; 
-            cmdVel_.linear.z = -0.5; 
+            //cmdVel_.linear.x = -0.1; 
+            cmdVel_.linear.z = -1.0; 
 
             RCLCPP_INFO_STREAM(this->get_logger(), "[APPROACH] Current num contacts: " << getNumContacts()); 
             if (checkContacts())
@@ -586,8 +588,15 @@ void UavCtl::timer_callback()
             float Kp_z = 1.0; float Kp_yaw = 0.5; 
             cmd_z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 1.0); 
             cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+            cmd_x = 0.0; cmd_y = 0.0; 
+            RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredPitch_ = " << imuMeasuredPitch_ << "\n");
+            RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
+
+            cmdVel_.linear.x = cmd_x; 
+            cmdVel_.linear.y = cmd_y;  
             cmdVel_.linear.z = cmd_z; 
             cmdVel_.angular.z = cmd_yaw; 
+
             if (std::abs(cmd_yaw) < 0.05 && usvPosReciv)
             {
                 current_state_ = GO_TO_DROP; 
@@ -606,12 +615,14 @@ void UavCtl::timer_callback()
                 // Align x, y
                 float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
                 float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
-                double cmd_x = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
-                double cmd_y = - calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
+                double cmd_x = calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
+                double cmd_y = calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
 
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
                 cmdVel_.linear.z = 0.0; 
+
+                RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredYaw_ = " << imuMeasuredYaw_ << "\n");
                 // Send z
                 if(std::abs(dropOffPoint_.point.x) < 0.1 && std::abs(dropOffPoint_.point.y < 0.1))
                 {   
