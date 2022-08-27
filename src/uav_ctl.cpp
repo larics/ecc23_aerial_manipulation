@@ -101,17 +101,17 @@ void UavCtl::init_params()
     this->get_parameter("Kp_h", Kp_h); 
     this->declare_parameter<float>("Kd_h", 0.05); 
     this->get_parameter("Kd_h", Kd_h); 
-    this->declare_parameter<float>("Kp_x", 1.0); 
+    this->declare_parameter<float>("Kp_x", 0.3); 
     this->get_parameter("Kp_x", Kp_x); 
     this->declare_parameter<float>("Kd_x", 0.05); 
     this->get_parameter("Kd_x", Kd_x); 
-    this->declare_parameter<float>("Kp_y", 1.0); 
+    this->declare_parameter<float>("Kp_y", 0.3); 
     this->get_parameter("Kp_y", Kp_y); 
     this->declare_parameter<float>("Kd_y", 0.05); 
     this->get_parameter("Kd_y", Kd_y); 
-    this->declare_parameter<float>("Kp_yaw", 0.05); 
+    this->declare_parameter<float>("Kp_yaw", 2.0); 
     this->get_parameter("Kp_yaw", Kp_yaw); 
-    this->declare_parameter<float>("Kd_yaw", 0.05); 
+    this->declare_parameter<float>("Kd_yaw", 0.0); 
     this->get_parameter("Kd_yaw", Kd_yaw); 
 }
 
