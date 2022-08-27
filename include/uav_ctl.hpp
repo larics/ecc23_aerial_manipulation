@@ -127,7 +127,7 @@ class UavCtl: public rclcpp::Node
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
         bool                                                                usvPosReciv = false; 
-        bool                                                                usvFinishedDocking_ = true; 
+        bool                                                                usvFinishedDocking_ = false; 
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
         int                                                                 contactCounter_=0; 
         float                                                               roll, pitch;
