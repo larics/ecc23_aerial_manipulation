@@ -24,6 +24,9 @@ void UavCtl::init()
 
     // initialize_parameters
     init_params(); 
+
+    // Callback groups
+    takeoff_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
@@ -58,7 +61,8 @@ void UavCtl::init()
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
     changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>(ns_ + std::string("/change_state"), std::bind(&UavCtl::change_state, this, _1, _2)); 
-
+    takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>(ns_ + std::string("/takeoff"), std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
+    
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
@@ -497,6 +501,28 @@ bool UavCtl::change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeStat
         res->success = false; 
     } 
         
+
+}
+
+bool UavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request::SharedPtr req, 
+                          mbzirc_aerial_manipulation_msgs::srv::Takeoff::Response::SharedPtr res)
+{
+    // Set takeoff commanded position.
+    auto cmd_pos = std::make_shared<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>();
+    cmd_pos->position.x = currPose_.pose.position.x;
+    cmd_pos->position.y = currPose_.pose.position.y;
+    cmd_pos->position.z = currPose_.pose.position.z + req->relative_height;
+    cmd_pos->heading.data = getCurrentYaw();
+    cmd_pose_callback(cmd_pos);
+    get_pose_dist();
+
+    // Wait until position is reached.
+    while (poseError_.abs_position > 0.1);
+
+    // Change state and report back
+    current_state_ = IDLE;
+
+    res->success = true;
 
 }
 

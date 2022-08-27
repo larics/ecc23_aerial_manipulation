@@ -36,6 +36,7 @@
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_euler.hpp"
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_error.hpp"
 #include "mbzirc_aerial_manipulation_msgs/srv/change_state.hpp"
+#include "mbzirc_aerial_manipulation_msgs/srv/takeoff.hpp"
 
 //* srvs
 #include "std_srvs/srv/trigger.hpp"
@@ -69,6 +70,9 @@ class UavCtl: public rclcpp::Node
         std::string                                                                     world_name_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
         float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw; 
+
+        // callback groups
+        rclcpp::CallbackGroup::SharedPtr                                                takeoff_group_;
 
         // publishers 
         rclcpp::Publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>::SharedPtr   absPoseDistPub_; 
@@ -104,6 +108,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    startSuctionSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    stopSuctionSrv_; 
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>::SharedPtr       changeStateSrv_; 
+        rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr           takeoffSrv_; 
         
         // timers
         rclcpp::TimerBase::SharedPtr                                        timer_;
@@ -223,6 +228,8 @@ class UavCtl: public rclcpp::Node
                            std_srvs::srv::Empty::Response::SharedPtr res); 
         bool change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeState::Request::SharedPtr req, 
                             mbzirc_aerial_manipulation_msgs::srv::ChangeState::Response::SharedPtr res); 
+        bool take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request::SharedPtr req, 
+                      mbzirc_aerial_manipulation_msgs::srv::Takeoff::Response::SharedPtr res); 
 
         static void limitCommand(double& cmd, double limit);                    
 
