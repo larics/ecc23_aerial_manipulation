@@ -66,7 +66,7 @@ class UavCtl: public rclcpp::Node
     private:
 
         // parameters
-        std::string                                                         world_name_;
+        std::string                                                                     world_name_;
 
         // publishers 
         rclcpp::Publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>::SharedPtr   absPoseDistPub_; 
@@ -94,6 +94,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                dockingFinishedSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
@@ -126,11 +127,13 @@ class UavCtl: public rclcpp::Node
         bool                                                                nodeInitialized = false; 
         bool                                                                cmdReciv = false; 
         bool                                                                usvPosReciv = false; 
+        bool                                                                usvFinishedDocking_ = true; 
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
         int                                                                 contactCounter_=0; 
         float                                                               roll, pitch;
         float                                                               currentYaw_, cmdYaw_;
-        float                                                               magHeading_; 
+        float                                                               magHeadingRad_, magHeadingDeg_; 
+
         float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_; 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
@@ -143,7 +146,7 @@ class UavCtl: public rclcpp::Node
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
 
-            // State machine
+        // State machine
         enum state 
         {   
             IDLE = 0, 
@@ -197,6 +200,7 @@ class UavCtl: public rclcpp::Node
         void det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
         void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
+        void docking_finished_callback(const std_msgs::msg::Bool::SharedPtr msg); 
 
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
