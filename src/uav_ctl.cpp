@@ -97,10 +97,10 @@ void UavCtl::init_params()
     // TODO: Add cfg with init params 
     this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
-    this->declare_parameter<float>("Kp_h", 1.0); 
+    this->declare_parameter<float>("Kp_h", 0.3); 
     this->get_parameter("Kp_h", Kp_h); 
     this->declare_parameter<float>("Kd_h", 0.05); 
-    this->get_parameter("Kd_h", Kp_h); 
+    this->get_parameter("Kd_h", Kd_h); 
     this->declare_parameter<float>("Kp_x", 1.0); 
     this->get_parameter("Kp_x", Kp_x); 
     this->declare_parameter<float>("Kd_x", 0.05); 
@@ -110,9 +110,9 @@ void UavCtl::init_params()
     this->declare_parameter<float>("Kd_y", 0.05); 
     this->get_parameter("Kd_y", Kd_y); 
     this->declare_parameter<float>("Kp_yaw", 0.05); 
-    this->get_parameter("Kp_yaw", Kd_y); 
+    this->get_parameter("Kp_yaw", Kp_yaw); 
     this->declare_parameter<float>("Kd_yaw", 0.05); 
-    this->get_parameter("Kd_yaw", Kd_y); 
+    this->get_parameter("Kd_yaw", Kd_yaw); 
 }
 
 rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(
@@ -128,7 +128,7 @@ rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(
             if (param.get_name() == "Kp_h")
                 Kp_h = param.as_double();
             else if (param.get_name() == "Kd_h")
-                Kp_h = param.as_double();
+                Kd_h = param.as_double();
             else if (param.get_name() == "Kp_x")
                 Kp_x = param.as_double();
             else if (param.get_name() == "Kd_x")
@@ -138,10 +138,12 @@ rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(
             else if (param.get_name() == "Kd_y")
                 Kd_y = param.as_double();
             else if (param.get_name() == "Kp_yaw")
-                Kd_y = param.as_double();
+                Kp_yaw = param.as_double();
             else if (param.get_name() == "Kd_yaw")
-                Kd_y = param.as_double();
+                Kd_yaw = param.as_double();
         }
+
+        init_ctl();
 
         RCLCPP_INFO_STREAM(this->get_logger(), "Parameters updated!");
 
@@ -156,8 +158,8 @@ void UavCtl::init_ctl()
     
     // UAV position control ---> NO OBJECT
     config.windup_limit = 5.0;
-    config.upper_limit = 9.0; 
-    config.lower_limit = -2.0;  
+    config.upper_limit = 5.0; 
+    config.lower_limit = -5.0;  
     pid.kp = Kp_h; pid.ki = 0.0;  pid.kd = Kd_h; 
     setPidController(z_controller_, pid, config); 
 
@@ -180,7 +182,7 @@ void UavCtl::init_ctl()
     setPidController(x_drop_controller_, pid, config); 
 
     pid.kp = 1.0; pid.ki = 0.1; pid.kd = 0.0; 
-    setPidController(y_controller_, pid, config); 
+    setPidController(y_drop_controller_, pid, config); 
 
 }
 
@@ -854,6 +856,11 @@ void UavCtl::setPidController(jlbpid::Controller& controller, jlbpid::PID pid, j
     controller.set_pid(std::move(pid));
     controller.set_config(std::move(config));    
     controller.set_plant_state(0); 
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Kp: " << pid.kp << " Ki: " << pid.ki << " Kd: " << pid.kd); 
+    RCLCPP_INFO_STREAM(this->get_logger(), "_________________________________________________" ); 
+
+
 }
 
 
