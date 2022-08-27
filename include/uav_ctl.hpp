@@ -84,7 +84,6 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
 
-
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
@@ -161,13 +160,13 @@ class UavCtl: public rclcpp::Node
             IDLE = 0, 
             JOYSTICK = 1, 
             POSITION = 3,  
-            SERVOING = 3, 
-            APPROACH = 4,  
-            PRE_GRASP = 5, 
-            GRASP = 6, 
-            LIFT = 7, 
-            GO_TO_DROP = 8, 
-            DROP = 9
+            SERVOING = 4, 
+            APPROACH = 5,  
+            PRE_GRASP = 6, 
+            GRASP = 7, 
+            LIFT = 8, 
+            GO_TO_DROP = 9, 
+            DROP = 10
         };
 
          // depends on num states
@@ -233,18 +232,22 @@ class UavCtl: public rclcpp::Node
         bool take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request::SharedPtr req, 
                       mbzirc_aerial_manipulation_msgs::srv::Takeoff::Response::SharedPtr res); 
 
-        static void limitCommand(double& cmd, double limit);                    
 
         // getters
         float getCurrentYaw(); 
         float getCmdYaw(); 
+        // suction gripper related
+        int getNumContacts() const; 
         bool checkContacts() const; 
         void printContacts() const; 
-        int getNumContacts() const; 
-        void generateContactRef(double& cmd_x, double& cmd_y); 
+        // controller related
+        static void limitCommand(double& cmd, double limit);                    
         double calcPropCmd(double gainP, double cmd_sp, double cmd_mv, double limit_command); 
         double calcPidCmd(jlbpid::Controller& controller, double cmd_sp, double cmd_mv); 
         void setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config); 
+        // state related 
+        void positionControl(geometry_msgs::msg::Twist& cmdVel); 
+
 
 
 

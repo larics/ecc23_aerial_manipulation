@@ -564,33 +564,9 @@ void UavCtl::timer_callback()
 
         if (current_state_ == POSITION)
         {
-
-        RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Position control!"); 
-        // TODO: Add in fuctions!    
-        // Publish current pose difference
-        get_pose_dist(); 
-        absPoseDistPub_->publish(poseError_);
-        
-        cmd_x = calcPidCmd(x_controller_, cmdPose_.pose.position.x, currPose_.pose.position.x); 
-        cmd_y = calcPidCmd(y_controller_, cmdPose_.pose.position.y, currPose_.pose.position.y); 
-        cmd_z = calcPidCmd(z_controller_, cmdPose_.pose.position.z, currPose_.pose.position.z); 
-        cmd_yaw = calcPidCmd(yaw_controller_, calculate_yaw_setpoint(), getCurrentYaw()); 
-
-        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
-        // RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
-        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
-    
-        cmdVel_.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
-        cmdVel_.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
-        cmdVel_.linear.z = cmd_z; 
-
-        cmdVel_.angular.x = 0; 
-        cmdVel_.angular.y = 0; 
-        cmdVel_.angular.z = cmd_yaw;   
-
-        cmdVelPub_->publish(cmdVel_);
+            positionControl(cmdVel_); 
         }
-
+       
         if (current_state_ == SERVOING)
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
@@ -778,6 +754,7 @@ void UavCtl::timer_callback()
 
 }   
 
+
 // GETTERS
 float UavCtl::getCurrentYaw()
 {
@@ -845,35 +822,6 @@ void UavCtl::setPidController(jlbpid::Controller& controller, jlbpid::PID pid, j
     controller.set_plant_state(0); 
 }
 
-// redundant
-void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)
-{   
-    // trying to make an informed reference
-    cmd_x = 0.0; cmd_y = 0.0;
-
-    // go backwards
-    if(topC && !bottomC){
-        cmd_x = -0.2; 
-    }
-
-    // go forward
-    if(!topC && bottomC){
-        cmd_x = 0.2; 
-    }
-
-    // go right
-    //if(!rightC && leftC){
-    //    cmd_y = -0.1;
-    //}
-
-    // go left
-    //if(rightC && !leftC){
-    //    cmd_y = 0.1; 
-    //}
-
-
-
-}
 
 void UavCtl::printContacts() const
 {
@@ -906,4 +854,37 @@ void UavCtl::printContacts() const
 }
 
 
+// State ctl 
+void UavCtl::positionControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    double cmd_x, cmd_y, cmd_z, cmd_yaw; 
+    RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Position control!"); 
+        
+    // Publish current pose difference
+    get_pose_dist(); 
+    absPoseDistPub_->publish(poseError_);
+        
+    cmd_x = calcPidCmd(x_controller_, cmdPose_.pose.position.x, currPose_.pose.position.x); 
+    cmd_y = calcPidCmd(y_controller_, cmdPose_.pose.position.y, currPose_.pose.position.y); 
+    cmd_z = calcPidCmd(z_controller_, cmdPose_.pose.position.z, currPose_.pose.position.z); 
+    cmd_yaw = calcPidCmd(yaw_controller_, calculate_yaw_setpoint(), getCurrentYaw()); 
 
+    // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
+    // RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
+    // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
+    
+    cmdVel.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
+    cmdVel.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
+    cmdVel.linear.z = cmd_z; 
+    cmdVel.angular.x = 0; 
+    cmdVel.angular.y = 0; 
+    cmdVel.angular.z = cmd_yaw;       
+
+}
+
+/*
+bool UavCtl::switchToState(state switch_state)
+{
+    current_state_ = state; 
+}
+*/
