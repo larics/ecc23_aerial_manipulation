@@ -24,6 +24,7 @@ void UavCtl::init()
 
     // initialize_parameters
     init_params(); 
+    callback_handle_ = this->add_on_set_parameters_callback(std::bind(&UavCtl::parametersCallback, this, std::placeholders::_1));
 
     // Callback groups
     takeoff_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -113,6 +114,39 @@ void UavCtl::init_params()
     this->declare_parameter<float>("Kd_yaw", 0.05); 
     this->get_parameter("Kd_yaw", Kd_y); 
 }
+
+rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(
+        const std::vector<rclcpp::Parameter> &parameters)
+    {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        result.reason = "success";
+        // Here update class attributes, do some actions, etc.
+
+        for (const auto &param: parameters)
+        {
+            if (param.get_name() == "Kp_h")
+                Kp_h = param.as_double();
+            else if (param.get_name() == "Kd_h")
+                Kp_h = param.as_double();
+            else if (param.get_name() == "Kp_x")
+                Kp_x = param.as_double();
+            else if (param.get_name() == "Kd_x")
+                Kd_x = param.as_double();
+            else if (param.get_name() == "Kp_y")
+                Kp_y = param.as_double();
+            else if (param.get_name() == "Kd_y")
+                Kd_y = param.as_double();
+            else if (param.get_name() == "Kp_yaw")
+                Kd_y = param.as_double();
+            else if (param.get_name() == "Kd_yaw")
+                Kd_y = param.as_double();
+        }
+
+        RCLCPP_INFO_STREAM(this->get_logger(), "Parameters updated!");
+
+        return result;
+    }
 
 void UavCtl::init_ctl()
 {

@@ -30,6 +30,7 @@
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 //* custom msgs
@@ -69,7 +70,9 @@ class UavCtl: public rclcpp::Node
         // parameters
         std::string                                                                     world_name_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
-        float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw; 
+        float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw;
+        OnSetParametersCallbackHandle::SharedPtr                                        callback_handle_;
+        rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
 
         // callback groups
         rclcpp::CallbackGroup::SharedPtr                                                takeoff_group_;
