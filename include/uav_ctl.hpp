@@ -81,6 +81,7 @@ class UavCtl: public rclcpp::Node
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
+        rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSubUsv_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
@@ -186,6 +187,7 @@ class UavCtl: public rclcpp::Node
 
         // sub callbacks
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
+        void pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
         void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   

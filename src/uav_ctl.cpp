@@ -40,6 +40,7 @@ void UavCtl::init()
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
+    poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>(std::string("/usv/pose_static"), 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
     currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>(ns_ + std::string("/pose_ref"), 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
 
@@ -230,6 +231,57 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         // publish warning if there's no pose estimate
         if(!pose_estimate && check_complete){
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
+        }
+
+}
+
+
+void UavCtl::pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg) 
+{       
+
+        geometry_msgs::msg::TransformStamped transform_stamped;
+        bool pose_estimate = false; 
+        bool check_complete = false; 
+
+        for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
+            // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
+            geometry_msgs::msg::TransformStamped transform_msg; 
+            transform_msg = msg->transforms.at(i); 
+
+            // tf's
+            std::string frame_id; std::string child_frame_id;  
+            frame_id        = transform_msg.header.frame_id; 
+            child_frame_id  = transform_msg.child_frame_id; 
+
+            // publish pose_gt for this uav
+            if (frame_id == world_name_ && child_frame_id == "usv") 
+            {   
+                pose_estimate = true; 
+                geometry_msgs::msg::PoseStamped msg; 
+
+                // This can also be ground truth pose
+                msg.header = transform_msg.header; 
+                msg.header.frame_id = child_frame_id; 
+                msg.pose.position.x = transform_msg.transform.translation.x; 
+                msg.pose.position.y = transform_msg.transform.translation.y; 
+                msg.pose.position.z = transform_msg.transform.translation.z; 
+                msg.pose.orientation = transform_msg.transform.rotation; 
+
+                poseGtPub_->publish(msg); 
+                
+                // Also broadcast as tf
+                staticPoseTfBroadcaster_->sendTransform(transform_msg);
+
+                break; 
+
+            }; 
+
+            check_complete = true; 
+
+        }
+        // publish warning if there's no pose estimate
+        if(!pose_estimate && check_complete){
+            RCLCPP_WARN(this->get_logger(), "No pose estimate found for usv"); 
         }
 
 }
