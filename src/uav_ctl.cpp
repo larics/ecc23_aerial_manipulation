@@ -22,9 +22,8 @@ void UavCtl::init()
     // Take node namespace as uav_name (easiest way to capture ns param)
     ns_ = this->get_namespace(); 	
 
-    // Parameters
-    this->declare_parameter<std::string>("world_name", "simple_demo");
-    this->get_parameter("world_name", world_name_);
+    // initialize_parameters
+    init_params(); 
     
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
@@ -52,6 +51,7 @@ void UavCtl::init()
     topContactSub_         = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/top"), 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
     centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/center"), 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
     dockingFinishedSub_    = this->create_subscription<std_msgs::msg::Bool>("docking_finished", 1, std::bind(&UavCtl::docking_finished_callback, this, _1)); 
+    
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
@@ -59,12 +59,9 @@ void UavCtl::init()
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
     changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>(ns_ + std::string("/change_state"), std::bind(&UavCtl::change_state, this, _1, _2)); 
 
-    //Servoing state 
-    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/usv/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
-
-    // USV integration (TODO: Think how to decouple control and integration)
-    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/usv/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
-
+    // Object detection
+    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
+    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -89,6 +86,30 @@ void UavCtl::init()
     RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
 }
 
+void UavCtl::init_params()
+{
+    // Parameters
+    // TODO: Add cfg with init params 
+    this->declare_parameter<std::string>("world_name", "simple_demo");
+    this->get_parameter("world_name", world_name_);
+    this->declare_parameter<float>("Kp_h", 1.0); 
+    this->get_parameter("Kp_h", Kp_h); 
+    this->declare_parameter<float>("Kd_h", 0.05); 
+    this->get_parameter("Kd_h", Kp_h); 
+    this->declare_parameter<float>("Kp_x", 1.0); 
+    this->get_parameter("Kp_x", Kp_x); 
+    this->declare_parameter<float>("Kd_x", 0.05); 
+    this->get_parameter("Kd_x", Kd_x); 
+    this->declare_parameter<float>("Kp_y", 1.0); 
+    this->get_parameter("Kp_y", Kp_y); 
+    this->declare_parameter<float>("Kd_y", 0.05); 
+    this->get_parameter("Kd_y", Kd_y); 
+    this->declare_parameter<float>("Kp_yaw", 0.05); 
+    this->get_parameter("Kp_yaw", Kd_y); 
+    this->declare_parameter<float>("Kd_yaw", 0.05); 
+    this->get_parameter("Kd_yaw", Kd_y); 
+}
+
 void UavCtl::init_ctl()
 {
 
@@ -97,7 +118,7 @@ void UavCtl::init_ctl()
     
     // Height controller
     // TODO: Config I 
-    pid.kp = 1; pid.ki = 0.01;  pid.kd = 0.01; 
+    pid.kp = Kp_h; pid.ki = 0.0;  pid.kd = Kd_h; 
     config.windup_limit = 5.0;
     config.upper_limit = 9.0; 
     config.lower_limit = -2.0;  
@@ -106,18 +127,18 @@ void UavCtl::init_ctl()
     z_controller_.set_plant_state(0);
 
     // Horizontal - x controller
-    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = Kp_x; pid.ki = 0.0; pid.kd = Kd_x; 
     x_controller_.set_pid(std::move(pid)); 
     x_controller_.set_config(std::move(config)); 
     x_controller_.set_plant_state(0);
 
     // Horizontal - y controller 
-    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0;  
+    pid.kp = Kp_y; pid.ki = 0.0; pid.kd = Kd_y;  
     y_controller_.set_pid(std::move(pid)); 
     y_controller_.set_config(std::move(config)); 
     y_controller_.set_plant_state(0);  
 
-    pid.kp = 1.0; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = Kp_yaw; pid.ki = 0.0; pid.kd = Kd_yaw; 
     yaw_controller_.set_pid(std::move(pid));
     yaw_controller_.set_plant_state(0); 
 
@@ -131,6 +152,7 @@ void UavCtl::init_ctl()
     // yaw controller; 
 
 }
+
 
 void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
@@ -698,7 +720,6 @@ void UavCtl::timer_callback()
                 double cmd_x = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
                 double cmd_y = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
                 cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
-                
 
                 RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
                 RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);

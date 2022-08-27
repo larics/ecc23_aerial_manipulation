@@ -67,6 +67,8 @@ class UavCtl: public rclcpp::Node
 
         // parameters
         std::string                                                                     world_name_;
+        float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
+        float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw; 
 
         // publishers 
         rclcpp::Publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>::SharedPtr   absPoseDistPub_; 
@@ -151,7 +153,7 @@ class UavCtl: public rclcpp::Node
         {   
             IDLE = 0, 
             JOYSTICK = 1, 
-            POSITION = 2, 
+            POSITION = 3,  
             SERVOING = 3, 
             APPROACH = 4,  
             PRE_GRASP = 6, 
@@ -182,6 +184,7 @@ class UavCtl: public rclcpp::Node
         // init methods
         void init(); 
         void init_ctl(); 
+        void init_params(); 
 
         // timer callback 
         void timer_callback(); 
