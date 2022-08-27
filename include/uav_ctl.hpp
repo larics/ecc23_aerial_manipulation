@@ -26,6 +26,7 @@
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/magnetic_field.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -92,6 +93,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                centerContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
@@ -128,6 +130,7 @@ class UavCtl: public rclcpp::Node
         int                                                                 contactCounter_=0; 
         float                                                               roll, pitch;
         float                                                               currentYaw_, cmdYaw_;
+        float                                                               magHeading_; 
         float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_; 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
@@ -193,6 +196,7 @@ class UavCtl: public rclcpp::Node
         void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   
         void det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
+        void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
 
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 

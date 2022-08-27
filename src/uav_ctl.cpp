@@ -235,6 +235,19 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 }
 
+void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
+{
+    // https://answers.ros.org/question/385299/imu-with-magnetometer-read-absolute-position/
+    // https://digilent.com/blog/how-to-convert-magnetometer-data-into-compass-heading/
+    double mag_x, mag_y, mag_z; 
+    mag_x = msg->magnetic_field.x; 
+    mag_y = msg->magnetic_field.y; 
+    mag_z = msg->magnetic_field.z; 
+    
+    if(mag_x != 0){
+        magHeading_ = atan(mag_y/mag_x) * 180/M_PI; 
+    }
+}
 
 void UavCtl::pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg) 
 {       
