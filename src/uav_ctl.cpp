@@ -60,10 +60,10 @@ void UavCtl::init()
     changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>(ns_ + std::string("/change_state"), std::bind(&UavCtl::change_state, this, _1, _2)); 
 
     //Servoing state 
-    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/usv/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
+    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
 
     // USV integration (TODO: Think how to decouple control and integration)
-    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/usv/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
+    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
 
 
     // TF
