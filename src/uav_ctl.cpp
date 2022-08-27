@@ -315,7 +315,7 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 
 void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
 {
-    if(current_state_ == DROP || current_state_ == LIFT)
+    if(current_state_ == DROP || current_state_ == LIFT || current_state_ == GO_TO_DROP)
     {
         usvPosReciv = true;
         dropOffPoint_.header = msg->header;  
@@ -637,12 +637,12 @@ void UavCtl::timer_callback()
 
             RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
             // Go to height 2
-            float Kp_z = 1.0; float Kp_yaw = 0.5; 
-            cmd_z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 1.0); 
+            float Kp_z = 2.0; float Kp_yaw = 0.5; 
+            cmd_z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 2.0); 
             cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
             cmd_x = 0.0; cmd_y = 0.0; 
-            RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredPitch_ = " << imuMeasuredPitch_ << "\n");
-            RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
+            //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredPitch_ = " << imuMeasuredPitch_ << "\n");
+            //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
 
             cmdVel_.linear.x = cmd_x; 
             cmdVel_.linear.y = cmd_y;  
@@ -660,38 +660,58 @@ void UavCtl::timer_callback()
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] Active!");
             // Compare time to know when time recieved
-            if(usvPosReciv){
+            double time_diff = this->get_clock()->now().seconds() - dropOffPoint_.header.stamp.sec;
+            RCLCPP_INFO_STREAM(this->get_logger(), "time diff  = " << time_diff << "\n");
+            RCLCPP_INFO_STREAM(this->get_logger(), "stamp  = " << dropOffPoint_.header.stamp.sec << "\n");
+            RCLCPP_INFO_STREAM(this->get_logger(), "clock now  = " << this->get_clock()->now().seconds() << "\n");
+            time_diff = 0.0;
+
+            if(usvPosReciv && time_diff < 0.5){
                 // goToPose with heading
                 // Add time check and possible timeout
                 // Could basically reuse SERVOING state (however than we have to have determination which SERVOING it is)
                 // Align x, y
-                float Kp_xy = 0.5; float Kp_z = 0.5; // servo gains
-                float limit_xy = 0.5; float limit_z = 0.4; // servo limits 
-                double cmd_x = calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
-                double cmd_y = calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
+                float Kp_xy = 0.1; float Kp_z = 0.5; // servo gains
+                float Kp_yaw = 0.5; 
+                float limit_xy = 0.2; float limit_z = 0.4; // servo limits 
+                double cmd_x = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
+                double cmd_y = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
+                cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+                
+
+                RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
+                RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);
 
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
                 cmdVel_.linear.z = 0.0; 
+                cmdVel_.angular.z = cmd_yaw; 
 
-                RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredYaw_ = " << imuMeasuredYaw_ << "\n");
+                //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredYaw_ = " << imuMeasuredYaw_ << "\n");
                 // Send z
-                if(std::abs(dropOffPoint_.point.x) < 0.1 && std::abs(dropOffPoint_.point.y < 0.1))
+                if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
                 {   
+                    current_state_ = DROP; 
+                    Kp_z = 3.0;
+                    limit_z = 2.0;
                     double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(dropOffPoint_.point.z), limit_z); 
                     cmdVel_.linear.z = cmd_z;
                 }
-                
+                /*
                 if (std::abs(dropOffPoint_.point.z) < 0.3) {
                     cmdVel_.linear.x = 0.0; 
                     cmdVel_.linear.y = 0.0; 
                     cmdVel_.linear.z = 0.0;             
                     current_state_ = DROP; 
-                
-                }    
+                } 
+                */ 
             }
             else 
             {
+                cmdVel_.linear.x = 0.0;
+                cmdVel_.linear.y = 0.0; 
+                cmdVel_.linear.z = 0.0; 
+                cmdVel_.angular.z = 0.0; 
                 std::cout << "nema poze\n";
             }
         }
