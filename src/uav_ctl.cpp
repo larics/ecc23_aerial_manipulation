@@ -694,6 +694,10 @@ void UavCtl::timer_callback()
 
             if (std::abs(cmd_yaw) < 0.05 && usvPosReciv)
             {
+                cmdVel_.linear.x = 0.0; 
+                cmdVel_.linear.y = 0.0;  
+                cmdVel_.linear.z = 0.0; 
+                cmdVel_.angular.z = 0.0; 
                 current_state_ = GO_TO_DROP; 
             }
 
@@ -701,13 +705,15 @@ void UavCtl::timer_callback()
 
         if (current_state_ == GO_TO_DROP)
         {
+            /*
             RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] Active!");
             // Compare time to know when time recieved
             double time_diff = this->get_clock()->now().seconds() - dropOffPoint_.header.stamp.sec;
             RCLCPP_INFO_STREAM(this->get_logger(), "time diff  = " << time_diff << "\n");
             RCLCPP_INFO_STREAM(this->get_logger(), "stamp  = " << dropOffPoint_.header.stamp.sec << "\n");
             RCLCPP_INFO_STREAM(this->get_logger(), "clock now  = " << this->get_clock()->now().seconds() << "\n");
-            time_diff = 0.0;
+            */
+            double time_diff = 0.0;
 
             if(usvPosReciv && time_diff < 0.5){
                 // goToPose with heading
@@ -720,9 +726,9 @@ void UavCtl::timer_callback()
                 double cmd_x = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
                 double cmd_y = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
                 cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
-
-                RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
-                RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);
+                
+                //RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
+                //RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);
 
                 cmdVel_.linear.x = cmd_x;
                 cmdVel_.linear.y = cmd_y; 
