@@ -153,12 +153,12 @@ class UavCtl: public rclcpp::Node
             JOYSTICK = 1, 
             POSITION = 2, 
             SERVOING = 3, 
-            APPROACH = 4, 
-            GRASP = 5, 
-            ALIGN_GRASP = 6, 
-            LIFT = 7, 
-            GO_TO_DROP = 8, 
-            DROP = 9
+            APPROACH = 4,  
+            PRE_GRASP = 6, 
+            GRASP = 7, 
+            LIFT = 8, 
+            GO_TO_DROP = 9, 
+            DROP = 10
         };
 
          // depends on num states
@@ -169,8 +169,7 @@ class UavCtl: public rclcpp::Node
             stringify( POSITION ), 
             stringify( SERVOING ), 
             stringify( APPROACH ), 
-            stringify( GRASP ), 
-            stringify( ALIGN_GRASP ), 
+            stringify( PRE_GRASP ), 
             stringify( LIFT ), 
             stringify( GO_TO_DROP )
             stringify( DROP )

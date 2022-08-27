@@ -575,43 +575,43 @@ void UavCtl::timer_callback()
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
             // P gain
-            float Kp_xy = 0.5; float Kp_z = 1.5; // servo gains
-            float limit_xy = 0.5; float limit_z = 0.5; // servo limits 
+            float Kp_xy = 0.5;  // servo gains
+            float limit_xy = 0.5;
             double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
             double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
             cmdVel_.linear.x = cmd_x;
             cmdVel_.linear.y = cmd_y; 
             // Send z
-            if(std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1) && usvFinishedDocking_)
+            if (usvFinishedDocking_ && std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
             {
-                double cmd_z = calcPropCmd(Kp_z, 0.0, std::abs(detObjPose_.point.z), limit_z); 
-                cmdVel_.linear.z = cmd_z;
+                current_state_= APPROACH; 
             }
-            
-            if (std::abs(detObjPose_.point.z) < 0.4) {
-                cmdVel_.linear.x = 0.0; 
-                cmdVel_.linear.y = 0.0; 
-                //cmdVel_.linear.z = 0.0;             
-                current_state_ = APPROACH;                
-            }
-
         }
 
-        if (current_state_ == APPROACH)
-        {   
-            RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching an object!"); 
-            //cmdVel_.linear.x = -0.1; 
+        if (current_state_ == APPROACH){
+            
+            float Kp_z = 1.5; float limit_z = 0.5; // servo limits
+            float Kp_xy = 0.5;  // servo gains
+            float limit_xy = 0.5;
+            double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
+            double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+            double cmd_z = calcPropCmd(Kp_z, 0.0, std::abs(detObjPose_.point.z), limit_z); 
+            cmdVel_.linear.x = cmd_x;
+            cmdVel_.linear.y = cmd_y;  
+            cmdVel_.linear.z = cmd_z;
+                
+            if (std::abs(detObjPose_.point.z) < 0.4) 
+            {
+            cmdVel_.linear.x = 0.0; 
+            cmdVel_.linear.y = 0.0; 
             cmdVel_.linear.z = -1.0; 
 
-            RCLCPP_INFO_STREAM(this->get_logger(), "[APPROACH] Current num contacts: " << getNumContacts()); 
-            if (checkContacts())
-            {
-                current_state_ = ALIGN_GRASP; 
+            if (checkContacts()) current_state_ = PRE_GRASP;   
             }
-            
-        }
 
-        if (current_state_ == ALIGN_GRASP)
+        }
+                 
+        if (current_state_ == PRE_GRASP)
         {   
             // Name is redundant atm
             RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] in progress. "); 
