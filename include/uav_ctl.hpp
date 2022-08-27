@@ -153,6 +153,7 @@ class UavCtl: public rclcpp::Node
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
         sensor_msgs::msg::Imu                                               currImuData_; 
+        geometry_msgs::msg::Twist                                           cmdVel_;
 
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
@@ -250,6 +251,15 @@ class UavCtl: public rclcpp::Node
         void setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config); 
         // state related 
         void positionControl(geometry_msgs::msg::Twist& cmdVel); 
+        void servoControl(geometry_msgs::msg::Twist& cmdVel); 
+        void approachControl(geometry_msgs::msg::Twist& cmdVel); 
+        void preGraspControl(geometry_msgs::msg::Twist& cmdVel); 
+        void graspControl(geometry_msgs::msg::Twist& cmdVel); 
+        void liftControl(geometry_msgs::msg::Twist& cmdVel); 
+        void goToDropControl(geometry_msgs::msg::Twist& cmdVel); 
+        void dropControl(geometry_msgs::msg::Twist& cmdVel); 
+
+
 
 
 

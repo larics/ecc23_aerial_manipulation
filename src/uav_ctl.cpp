@@ -30,39 +30,39 @@ void UavCtl::init()
     takeoff_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     
     // Publishers 
-    cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>(ns_ + std::string("/cmd_vel"), 1); 
-    poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1); 
-    gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_left/cmd_pos"), 1); 
-    gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>(ns_ + std::string("/gripper/joint/finger_right/cmd_pos"), 1); 
-    gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/suction_on"), 1); 
-    currentStatePub_       = this->create_publisher<std_msgs::msg::String>(ns_ + std::string("/state"), 1); 
-    absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>(ns_ + std::string("/pose_dist"), 1); 
+    cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1); 
+    poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose_gt", 1); 
+    gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_left/cmd_pos", 1); 
+    gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_right/cmd_pos", 1); 
+    gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("gripper/suction_on", 1); 
+    currentStatePub_       = this->create_publisher<std_msgs::msg::String>("state", 1); 
+    absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
     // suction_related
-    fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/all"), 1); 
+    fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
 
 
     // Subscribers
-    poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>(ns_ + std::string("/pose_static"), 1, std::bind(&UavCtl::pose_callback, this, _1));
-    poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>(std::string("/usv/pose_static"), 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
-    currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>(ns_ + std::string("/pose_gt"), 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
-    cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>(ns_ + std::string("/pose_ref"), 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
+    poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
+    poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>("/usv/pose_static", 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
+    currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>("pose_gt", 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
+    cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
 
-    imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>(ns_ + std::string("/imu/data"), 1, std::bind(&UavCtl::imu_callback, this, _1)); 
+    imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&UavCtl::imu_callback, this, _1)); 
     // suction_related
-    bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/bottom"), 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
-    leftContactSub_        = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/left"), 1, std::bind(&UavCtl::left_contact_callback, this, _1)); 
-    rightContactSub_       = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/right"), 1, std::bind(&UavCtl::right_contact_callback, this, _1)); 
-    topContactSub_         = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/top"), 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
-    centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>(ns_ + std::string("/gripper/contacts/center"), 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
+    bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/bottom", 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
+    leftContactSub_        = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/left", 1, std::bind(&UavCtl::left_contact_callback, this, _1)); 
+    rightContactSub_       = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/right", 1, std::bind(&UavCtl::right_contact_callback, this, _1)); 
+    topContactSub_         = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/top", 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
+    centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/center", 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
     dockingFinishedSub_    = this->create_subscription<std_msgs::msg::Bool>("docking_finished", 1, std::bind(&UavCtl::docking_finished_callback, this, _1)); 
     
     // Services
-    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/open_gripper"), std::bind(&UavCtl::open_gripper, this, _1, _2)); 
-    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/close_gripper"),  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
-    startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/start_suction"), std::bind(&UavCtl::start_suction, this, _1, _2)); 
-    stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>(ns_ + std::string("/stop_suction"), std::bind(&UavCtl::stop_suction, this, _1, _2)); 
-    changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>(ns_ + std::string("/change_state"), std::bind(&UavCtl::change_state, this, _1, _2)); 
-    takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>(ns_ + std::string("/takeoff"), std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
+    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
+    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
+    startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>("start_suction", std::bind(&UavCtl::start_suction, this, _1, _2)); 
+    stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>("stop_suction", std::bind(&UavCtl::stop_suction, this, _1, _2)); 
+    changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>("change_state", std::bind(&UavCtl::change_state, this, _1, _2)); 
+    takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
     
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
@@ -109,9 +109,9 @@ void UavCtl::init_params()
     this->get_parameter("Kp_y", Kp_y); 
     this->declare_parameter<float>("Kd_y", 0.05); 
     this->get_parameter("Kd_y", Kd_y); 
-    this->declare_parameter<float>("Kp_yaw", 2.0); 
+    this->declare_parameter<float>("Kp_yaw", 0.05); 
     this->get_parameter("Kp_yaw", Kp_yaw); 
-    this->declare_parameter<float>("Kd_yaw", 0.0); 
+    this->declare_parameter<float>("Kd_yaw", 0.05); 
     this->get_parameter("Kd_yaw", Kd_yaw); 
 }
 
@@ -186,7 +186,7 @@ void UavCtl::init_ctl()
 
 }
 
-
+// subscriber callbacks
 void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
     // TODO: Fix this part!
@@ -455,6 +455,7 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     imuMeasuredYaw_ = yaw; 
 }  
 
+// service callbacks
 bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                               std_srvs::srv::Empty::Response::SharedPtr res)
 {
@@ -469,6 +470,7 @@ bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
 
     return true; 
 }
+
 bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
                             std_srvs::srv::Empty::Response::SharedPtr res)
 {
@@ -586,202 +588,29 @@ double UavCtl::calculate_yaw_setpoint()
 }
 
 void UavCtl::timer_callback()
-{
-    // TODO: Add control here for PID control :) 
-    // get current uav_state
-    double cmd_x; double cmd_y; double cmd_z; double cmd_yaw; 
-    geometry_msgs::msg::Pose msg; 
-    std_msgs::msg::Bool suction_msg; 
-
-    // this PID is used only for controlling z axis
+{   
+    
     if (nodeInitialized){
         
-        geometry_msgs::msg::Twist cmdVel_;
 
-        if (current_state_ == POSITION)
-        {
-            positionControl(cmdVel_); 
-        }
-       
-        if (current_state_ == SERVOING)
-        {
-            RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
-            // P gain
-            float Kp_xy = 0.5;  // servo gains
-            float limit_xy = 0.5;
-            double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
-            double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
-            cmdVel_.linear.x = cmd_x;
-            cmdVel_.linear.y = cmd_y; 
-            // Send z
-            if (usvFinishedDocking_ && std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1))
-            {
-                current_state_= APPROACH; 
-            }
-        }
+        if (current_state_ == POSITION) positionControl(cmdVel_); 
 
-        if (current_state_ == APPROACH){
-            
-            float Kp_z = 1.5; float limit_z = 0.5; // servo limits
-            float Kp_xy = 0.5;  // servo gains
-            float limit_xy = 0.5;
-            double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
-            double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
-            double cmd_z = calcPropCmd(Kp_z, 0.0, std::abs(detObjPose_.point.z), limit_z); 
-            cmdVel_.linear.x = cmd_x;
-            cmdVel_.linear.y = cmd_y;  
-            cmdVel_.linear.z = cmd_z;
-                
-            if (std::abs(detObjPose_.point.z) < 0.4) 
-            {
-            cmdVel_.linear.x = 0.0; 
-            cmdVel_.linear.y = 0.0; 
-            cmdVel_.linear.z = -1.0; 
-
-            if (checkContacts()) current_state_ = PRE_GRASP;   
-            }
-
-        }
+        if (current_state_ == SERVOING) servoControl(cmdVel_); 
+        
+        if (current_state_ == APPROACH) approachControl(cmdVel_); 
                  
-        if (current_state_ == PRE_GRASP)
-        {   
-            // Name is redundant atm
-            RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] in progress. "); 
-            RCLCPP_INFO_STREAM(this->get_logger(), "[ALIGN GRASP] num_contacts: " << getNumContacts()); 
-            // Apply constant pressure on gripper and move it left/right until 
-            // on middle of a case
-            cmdVel_.linear.z = -5.0; 
-            if (getNumContacts() > 4){
-                contactCounter_++; 
-            }else{
-                contactCounter_ = 0; 
-            }
-            if(contactCounter_> 3){
-                current_state_ = GRASP; 
-            }
-        }
-
-        if (current_state_ == GRASP)
-        {
-            float Kp_z = 0.5; 
-            RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Grasping an object!"); 
-            suction_msg.data = true; 
-
-            if (getNumContacts() > 4)
-            {
-                contactCounter_++; 
-            }
-            // uses current pose!
-            if (contactCounter_ > 5 && contactCounter_ < 15)
-            {   
-                RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Started sucking big time!"); 
-                gripperCmdSuctionPub_->publish(suction_msg); 
-                
-            }
-            if (contactCounter_ > 15)
-            {
-                current_state_ = LIFT;
-            }
-
-        }
-
-        if (current_state_ == LIFT)
-        {
-
-            RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
-            // Go to height 2
-            float Kp_z = 2.0; float Kp_yaw = 0.5; 
-            cmd_z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 2.0); 
-            cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
-            cmd_x = 0.0; cmd_y = 0.0; 
-            //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredPitch_ = " << imuMeasuredPitch_ << "\n");
-            //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
-
-            cmdVel_.linear.x = cmd_x; 
-            cmdVel_.linear.y = cmd_y;  
-            cmdVel_.linear.z = cmd_z; 
-            cmdVel_.angular.z = cmd_yaw; 
-
-            if (std::abs(cmd_yaw) < 0.05 && usvPosReciv)
-            {
-                cmdVel_.linear.x = 0.0; 
-                cmdVel_.linear.y = 0.0;  
-                cmdVel_.linear.z = 0.0; 
-                cmdVel_.angular.z = 0.0; 
-                current_state_ = GO_TO_DROP; 
-            }
-
-        }
-
-        if (current_state_ == GO_TO_DROP)
-        {
-            /*
-            RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] Active!");
-            // Compare time to know when time recieved
-            double time_diff = this->get_clock()->now().seconds() - dropOffPoint_.header.stamp.sec;
-            RCLCPP_INFO_STREAM(this->get_logger(), "time diff  = " << time_diff << "\n");
-            RCLCPP_INFO_STREAM(this->get_logger(), "stamp  = " << dropOffPoint_.header.stamp.sec << "\n");
-            RCLCPP_INFO_STREAM(this->get_logger(), "clock now  = " << this->get_clock()->now().seconds() << "\n");
-            */
-            double time_diff = 0.0;
-
-            if(usvPosReciv && time_diff < 0.5){
-                // goToPose with heading
-                // Add time check and possible timeout
-                // Could basically reuse SERVOING state (however than we have to have determination which SERVOING it is)
-                // Align x, y
-                float Kp_z = 0.5; // servo gains
-                float Kp_yaw = 0.5; 
-                float limit_z = 0.4; // servo limits 
-                double cmd_x = -calcPidCmd(x_drop_controller_, 0, dropOffPoint_.point.x); 
-                double cmd_y = -calcPidCmd(y_drop_controller_, 0, dropOffPoint_.point.y); 
-                cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
-                
-                //RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
-                //RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);
-
-                cmdVel_.linear.x = cmd_x;
-                cmdVel_.linear.y = cmd_y; 
-                cmdVel_.linear.z = 0.0; 
-                cmdVel_.angular.z = cmd_yaw; 
-
-                //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredYaw_ = " << imuMeasuredYaw_ << "\n");
-                // Send z
-                if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
-                {   
-                    current_state_ = DROP; 
-                    Kp_z = 3.0;
-                    limit_z = 2.0;
-                    double cmd_z = calcPropCmd(Kp_z, 0.35, std::abs(dropOffPoint_.point.z), limit_z); 
-                    cmdVel_.linear.z = cmd_z;
-                }
-                /*
-                if (std::abs(dropOffPoint_.point.z) < 0.3) {
-                    cmdVel_.linear.x = 0.0; 
-                    cmdVel_.linear.y = 0.0; 
-                    cmdVel_.linear.z = 0.0;             
-                    current_state_ = DROP; 
-                } 
-                */ 
-            }
-            else 
-            {
-                cmdVel_.linear.x = 0.0;
-                cmdVel_.linear.y = 0.0; 
-                cmdVel_.linear.z = 0.0; 
-                cmdVel_.angular.z = 0.0; 
-                std::cout << "nema poze\n";
-            }
-        }
-
-        if( current_state_ == DROP){
-            RCLCPP_INFO(this->get_logger(), "[DROP] Dropping food!");
-            suction_msg.data = false; 
-            gripperCmdSuctionPub_->publish(suction_msg); 
-
-        }
+        if (current_state_ == PRE_GRASP) preGraspControl(cmdVel_); 
+        
+        if (current_state_ == GRASP) graspControl(cmdVel_); 
+        
+        if (current_state_ == LIFT) liftControl(cmdVel_); 
+        
+        if (current_state_ == GO_TO_DROP) goToDropControl(cmdVel_); 
+        
+        if( current_state_ == DROP) dropControl(cmdVel_); 
 
         cmdVelPub_->publish(cmdVel_); 
+        
         // Publish current state
         std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 
         currentStatePub_->publish(state_msg); 
@@ -790,8 +619,7 @@ void UavCtl::timer_callback()
 
 }   
 
-
-// GETTERS
+// getters
 float UavCtl::getCurrentYaw()
 {
     return currentYaw_; 
@@ -895,20 +723,19 @@ void UavCtl::printContacts() const
 }
 
 
-// State ctl 
+// State control 
 void UavCtl::positionControl(geometry_msgs::msg::Twist& cmdVel)
 {
-    double cmd_x, cmd_y, cmd_z, cmd_yaw; 
     RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Position control!"); 
         
     // Publish current pose difference
     get_pose_dist(); 
     absPoseDistPub_->publish(poseError_);
         
-    cmd_x = calcPidCmd(x_controller_, cmdPose_.pose.position.x, currPose_.pose.position.x); 
-    cmd_y = calcPidCmd(y_controller_, cmdPose_.pose.position.y, currPose_.pose.position.y); 
-    cmd_z = calcPidCmd(z_controller_, cmdPose_.pose.position.z, currPose_.pose.position.z); 
-    cmd_yaw = calcPidCmd(yaw_controller_, calculate_yaw_setpoint(), getCurrentYaw()); 
+    double cmd_x = calcPidCmd(x_controller_, cmdPose_.pose.position.x, currPose_.pose.position.x); 
+    double cmd_y = calcPidCmd(y_controller_, cmdPose_.pose.position.y, currPose_.pose.position.y); 
+    double cmd_z = calcPidCmd(z_controller_, cmdPose_.pose.position.z, currPose_.pose.position.z); 
+    double cmd_yaw = calcPidCmd(yaw_controller_, calculate_yaw_setpoint(), getCurrentYaw()); 
 
     // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
     // RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
@@ -921,6 +748,166 @@ void UavCtl::positionControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.angular.y = 0; 
     cmdVel.angular.z = cmd_yaw;       
 
+}
+
+void UavCtl::servoControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Servoing on object!"); 
+    // servo gains
+    float Kp_xy = 0.5;  
+    float limit_xy = 0.5;
+    // calc commands
+    double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
+    double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+    cmdVel.linear.x = cmd_x;
+    cmdVel.linear.y = cmd_y; 
+    cmdVel.linear.z = 0.0; 
+    // condition
+    bool dist_cond = std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y < 0.1); 
+    if (usvFinishedDocking_ && dist_cond) current_state_ = APPROACH;
+
+}
+
+void UavCtl::approachControl(geometry_msgs::msg::Twist& cmdVel)
+{   
+    RCLCPP_INFO_ONCE(this->get_logger(), "[APPROACH] Approaching on object!"); 
+    // approach gains
+    float Kp_xy = 0.5; float Kp_z = 1.5;  
+    // approach limits
+    float limit_xy = 0.5; float limit_z = 0.5;
+    // calc commands
+    double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
+    double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
+    double cmd_z = calcPropCmd(Kp_z, 0.0, std::abs(detObjPose_.point.z), limit_z); 
+    cmdVel.linear.x = cmd_x;
+    cmdVel.linear.y = cmd_y;  
+    cmdVel.linear.z = cmd_z;
+    // condition            
+    if (std::abs(detObjPose_.point.z) < 0.4) {
+    cmdVel.linear.x = 0.0; 
+    cmdVel.linear.y = 0.0; 
+    cmdVel.linear.z = -1.0; 
+
+    if (checkContacts()) current_state_ = PRE_GRASP;   
+            
+    }
+}
+
+void UavCtl::preGraspControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    // Name is redundant atm
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PRE_GRASP] in progress, num_contacts:  " << getNumContacts()); 
+    // Apply constant pressure on gripper and move it left/right until 
+    // on middle of a case
+    cmdVel.linear.z = -5.0; 
+    if (getNumContacts() > 4){
+        contactCounter_++; 
+    }else{
+        contactCounter_ = 0; 
+    }
+    if(contactCounter_> 3) current_state_ = GRASP; 
+            
+}
+
+void UavCtl::graspControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Grasping an object!"); 
+    std_msgs::msg::Bool suction_msg; suction_msg.data = true; 
+
+    if (getNumContacts() > 4)
+    {
+        contactCounter_++; 
+    }
+            // uses current pose!
+    if (contactCounter_ > 5 && contactCounter_ < 15)
+    {   
+        RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Started sucking big time!"); 
+        gripperCmdSuctionPub_->publish(suction_msg); 
+                
+    }
+    if (contactCounter_ > 15)
+    {
+        current_state_ = LIFT;
+    }
+
+}
+
+void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] active!"); 
+    float Kp_z = 2.0; float Kp_yaw = 0.5;
+    //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredPitch_ = " << imuMeasuredPitch_ << "\n");
+    //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
+    cmdVel.linear.x = 0.0; 
+    cmdVel.linear.y = 0.0;  
+    cmdVel.linear.z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 2.0); 
+    cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25);  
+
+    if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
+    {
+
+        cmdVel.linear.z = 0.0; 
+        cmdVel.angular.z = 0.0; 
+        current_state_ = GO_TO_DROP; 
+    }
+}
+
+void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
+{   
+    RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] active!"); 
+    // TODO: Tune controllers!
+    if(usvPosReciv){
+    float Kp_z = 0.5; float Kp_yaw = 0.5; 
+    float limit_z = 0.5; // servo limits 
+                    
+    //RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
+    //RCLCPP_INFO_STREAM(this->get_logger(), "velocity  = " << cmd_x << ", " << cmd_y);
+
+    cmdVel.linear.x = -calcPidCmd(x_drop_controller_, 0, dropOffPoint_.point.x); 
+    cmdVel.linear.y = -calcPidCmd(y_drop_controller_, 0, dropOffPoint_.point.y); 
+    cmdVel.linear.z = 0.0; 
+    cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+
+    //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredYaw_ = " << imuMeasuredYaw_ << "\n");
+    // Send z
+    if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
+    {   
+        current_state_ = DROP; 
+        Kp_z = 3.0; limit_z = 2.0;
+        cmdVel.linear.z = calcPropCmd(Kp_z, 0.35, std::abs(dropOffPoint_.point.z), limit_z); 
+    }
+    /* z-drop
+    if (std::abs(dropOffPoint_.point.z) < 0.3) {
+        cmdVel_.linear.x = 0.0; 
+        cmdVel_.linear.y = 0.0; 
+        cmdVel_.linear.z = 0.0;             
+        current_state_ = DROP; 
+    } 
+    */ 
+    usvPosReciv = false; // With this logic, if I don't recieve pose, I can't find USV 
+    }else {
+        cmdVel.linear.x = 0.0;
+        cmdVel.linear.y = 0.0; 
+        cmdVel.linear.z = 0.0; 
+        cmdVel.angular.z = 0.0; 
+    std::cout << "nema poze\n";
+    }
+}
+
+void UavCtl::dropControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    
+    RCLCPP_INFO(this->get_logger(), "[DROP] Dropping food!");
+    // set speeds to 0
+    cmdVel.linear.x = 0.0;
+    cmdVel.linear.y = 0.0; 
+    cmdVel.linear.z = 0.0; 
+    cmdVel.angular.z = 0.0; 
+    std_msgs::msg::Bool suction_msg; 
+    suction_msg.data = false; 
+    gripperCmdSuctionPub_->publish(suction_msg); 
+
+    current_state_ = IDLE; 
 }
 
 /*
