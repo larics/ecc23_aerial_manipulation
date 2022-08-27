@@ -120,40 +120,33 @@ void UavCtl::init_ctl()
     // Controller -> set pid with (kp, ki, kd) gains    
     RCLCPP_INFO_STREAM(this->get_logger(), "Setting up controllers!");
     
-    // Height controller
-    // TODO: Config I 
-    pid.kp = Kp_h; pid.ki = 0.0;  pid.kd = Kd_h; 
+    // UAV position control ---> NO OBJECT
     config.windup_limit = 5.0;
     config.upper_limit = 9.0; 
     config.lower_limit = -2.0;  
-    z_controller_.set_pid(std::move(pid)); 
-    z_controller_.set_config(std::move(config)); 
-    z_controller_.set_plant_state(0);
+    pid.kp = Kp_h; pid.ki = 0.0;  pid.kd = Kd_h; 
+    setPidController(z_controller_, pid, config); 
 
     // Horizontal - x controller
     pid.kp = Kp_x; pid.ki = 0.0; pid.kd = Kd_x; 
-    x_controller_.set_pid(std::move(pid)); 
-    x_controller_.set_config(std::move(config)); 
-    x_controller_.set_plant_state(0);
+    setPidController(x_controller_, pid, config); 
 
     // Horizontal - y controller 
     pid.kp = Kp_y; pid.ki = 0.0; pid.kd = Kd_y;  
-    y_controller_.set_pid(std::move(pid)); 
-    y_controller_.set_config(std::move(config)); 
-    y_controller_.set_plant_state(0);  
+    setPidController(y_controller_, pid, config); 
 
     pid.kp = Kp_yaw; pid.ki = 0.0; pid.kd = Kd_yaw; 
-    yaw_controller_.set_pid(std::move(pid));
-    yaw_controller_.set_plant_state(0); 
+    setPidController(yaw_controller_, pid, config); 
 
-    /*
-    Gains 
-    ----------
-    How to configure gains for normal flight? 
-    Small I and small D lead reference to instability? 
-    Which PID to use? 
-    */
-    // yaw controller; 
+    // UAV position control ---> WITH OBJECT
+    config.windup_limit = 2.0;
+    config.upper_limit = 1.0; 
+    config.lower_limit = -1.0;  
+    pid.kp = 1.0; pid.ki = 0.1; pid.kd = 0.0; 
+    setPidController(x_drop_controller_, pid, config); 
+
+    pid.kp = 1.0; pid.ki = 0.1; pid.kd = 0.0; 
+    setPidController(y_controller_, pid, config); 
 
 }
 
@@ -578,35 +571,14 @@ void UavCtl::timer_callback()
         get_pose_dist(); 
         absPoseDistPub_->publish(poseError_);
         
-        // Using only update as suggested in jlbpid docs results in threading issue
-        x_controller_.set_plant_state(currPose_.pose.position.x); 
-        x_controller_.set_setpoint(cmdPose_.pose.position.x); 
-        x_controller_.update(); 
-        cmd_x = x_controller_.get_control_effort(); 
-
-        y_controller_.set_plant_state(currPose_.pose.position.y); 
-        y_controller_.set_setpoint(cmdPose_.pose.position.y);
-        y_controller_.update();
-        cmd_y = y_controller_.get_control_effort(); 
-
-        z_controller_.set_plant_state(currPose_.pose.position.z); 
-        z_controller_.set_setpoint(cmdPose_.pose.position.z);  
-        z_controller_.update();
-        cmd_z = z_controller_.get_control_effort(); 
-
-        // RCLCPP_INFO_STREAM(this->get_logger(), "cmd yaw: " << calculate_yaw_setpoint()); 
-        yaw_controller_.set_plant_state(getCurrentYaw());
-        yaw_controller_.set_setpoint(calculate_yaw_setpoint()); 
-        yaw_controller_.update(); 
-        cmd_yaw = yaw_controller_.get_control_effort(); 
+        cmd_x = calcPidCmd(x_controller_, cmdPose_.pose.position.x, currPose_.pose.position.x); 
+        cmd_y = calcPidCmd(y_controller_, cmdPose_.pose.position.y, currPose_.pose.position.y); 
+        cmd_z = calcPidCmd(z_controller_, cmdPose_.pose.position.z, currPose_.pose.position.z); 
+        cmd_yaw = calcPidCmd(yaw_controller_, calculate_yaw_setpoint(), getCurrentYaw()); 
 
         // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << cmdPose_.pose.position.z); 
         // RCLCPP_INFO_STREAM(this->get_logger(), "curr z: " << currPose_.pose.position.z); 
         // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
-
-        // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << getCurrentYaw());      
-        // RCLCPP_INFO_STREAM(this->get_logger(), "cos(yaw)" << cos(getCurrentYaw())); 
-        // RCLCPP_INFO_STREAM(this->get_logger(), "sin(yaw)" << sin(getCurrentYaw())); 
     
         cmdVel_.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
         cmdVel_.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
@@ -746,11 +718,11 @@ void UavCtl::timer_callback()
                 // Add time check and possible timeout
                 // Could basically reuse SERVOING state (however than we have to have determination which SERVOING it is)
                 // Align x, y
-                float Kp_xy = 0.1; float Kp_z = 0.5; // servo gains
+                float Kp_z = 0.5; // servo gains
                 float Kp_yaw = 0.5; 
-                float limit_xy = 0.2; float limit_z = 0.4; // servo limits 
-                double cmd_x = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.x, limit_xy); 
-                double cmd_y = -calcPropCmd(Kp_xy, 0, dropOffPoint_.point.y, limit_xy); 
+                float limit_z = 0.4; // servo limits 
+                double cmd_x = -calcPidCmd(x_drop_controller_, 0, dropOffPoint_.point.x); 
+                double cmd_y = -calcPidCmd(y_drop_controller_, 0, dropOffPoint_.point.y); 
                 cmd_yaw = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
                 
                 //RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y);
@@ -817,6 +789,7 @@ float UavCtl::getCmdYaw()
     return cmdYaw_; 
 }
 
+
 void UavCtl::limitCommand(double& cmd, double limit)
 {
     if (cmd > limit)
@@ -855,6 +828,22 @@ double UavCtl::calcPropCmd(double Kp, double cmd_sp, double cmd_mv, double limit
     return cmd; 
 }
 
+double UavCtl::calcPidCmd(jlbpid::Controller& controller, double cmd_sp, double cmd_mv)
+{
+    // Using only update as suggested in jlbpid docs results in threading issue
+    controller.set_plant_state(cmd_mv); 
+    controller.set_setpoint(cmd_sp); 
+    controller.update(); 
+
+    return controller.get_control_effort(); 
+}
+
+void UavCtl::setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config)
+{
+    controller.set_pid(std::move(pid));
+    controller.set_config(std::move(config));    
+    controller.set_plant_state(0); 
+}
 
 // redundant
 void UavCtl::generateContactRef(double& cmd_x, double& cmd_y)

@@ -115,7 +115,9 @@ class UavCtl: public rclcpp::Node
 
         // controllers
         jlbpid::Controller                                                  x_controller_; 
+        jlbpid::Controller                                                  x_drop_controller_; 
         jlbpid::Controller                                                  y_controller_;
+        jlbpid::Controller                                                  y_drop_controller_; 
         jlbpid::Controller                                                  z_controller_; 
         jlbpid::Controller                                                  yaw_controller_;  
         jlbpid::PID                                                         pid; 
@@ -241,6 +243,10 @@ class UavCtl: public rclcpp::Node
         int getNumContacts() const; 
         void generateContactRef(double& cmd_x, double& cmd_y); 
         double calcPropCmd(double gainP, double cmd_sp, double cmd_mv, double limit_command); 
+        double calcPidCmd(jlbpid::Controller& controller, double cmd_sp, double cmd_mv); 
+        void setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config); 
+
+
 
 
        
