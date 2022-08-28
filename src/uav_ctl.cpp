@@ -48,6 +48,7 @@ void UavCtl::init()
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
     currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&UavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&UavCtl::imu_callback, this, _1)); 
+    magneticFieldSub_      = this->create_subscription<sensor_msgs::msg::MagneticField>("magnetic_field", 1, std::bind(&UavCtl::magnetometer_callback, this, _1)); 
     // suction_related
     bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/bottom", 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
     leftContactSub_        = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/left", 1, std::bind(&UavCtl::left_contact_callback, this, _1)); 
@@ -632,21 +633,21 @@ void UavCtl::timer_callback()
     if (nodeInitialized){
         
 
-        if (current_state_ == POSITION) positionControl(cmdVel_); 
+        if (current_state_ == POSITION)     positionControl(cmdVel_); 
 
-        if (current_state_ == SERVOING) servoControl(cmdVel_); 
+        if (current_state_ == SERVOING)     servoControl(cmdVel_); 
         
-        if (current_state_ == APPROACH) approachControl(cmdVel_); 
+        if (current_state_ == APPROACH)     approachControl(cmdVel_); 
                  
-        if (current_state_ == PRE_GRASP) preGraspControl(cmdVel_); 
+        if (current_state_ == PRE_GRASP)    preGraspControl(cmdVel_); 
         
-        if (current_state_ == GRASP) graspControl(cmdVel_); 
+        if (current_state_ == GRASP)        graspControl(cmdVel_); 
         
-        if (current_state_ == LIFT) liftControl(cmdVel_); 
+        if (current_state_ == LIFT)         liftControl(cmdVel_); 
         
-        if (current_state_ == GO_TO_DROP) goToDropControl(cmdVel_); 
+        if (current_state_ == GO_TO_DROP)   goToDropControl(cmdVel_); 
         
-        if (current_state_ == DROP) dropControl(cmdVel_); 
+        if (current_state_ == DROP)         dropControl(cmdVel_); 
 
         if (current_state_ != INIT_STATE)
         {
