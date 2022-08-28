@@ -46,7 +46,7 @@ void UavCtl::init()
     poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>("/usv/pose_static", 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
     currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>("pose_gt", 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
-
+    currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&UavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&UavCtl::imu_callback, this, _1)); 
     // suction_related
     bottomContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/bottom", 1, std::bind(&UavCtl::bottom_contact_callback, this, _1)); 
@@ -97,6 +97,9 @@ void UavCtl::init_params()
     // TODO: Add cfg with init params 
     this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
+    this->declare_parameter<bool>("use_gt", true);
+    this->get_parameter("use_gt", use_gt_);
+
     this->declare_parameter<float>("Kp_h", 0.3); 
     this->get_parameter("Kp_h", Kp_h); 
     this->declare_parameter<float>("Kd_h", 0.05); 
@@ -189,6 +192,8 @@ void UavCtl::init_ctl()
 // subscriber callbacks
 void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
 {   
+    if (!use_gt_) {return;}
+
     // TODO: Fix this part!
     currPose_.header.frame_id = msg->header.frame_id;
     currPose_.pose.position.x = msg->pose.position.x;  
@@ -214,8 +219,37 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
 
     // Output yaw (needed for pose estimation)
     // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+}
 
+void UavCtl::curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
+{   
+    if (use_gt_) {return;}
+    
+    // TODO: Fix this part!
+    currPose_.header.frame_id = msg->header.frame_id;
+    currPose_.pose.position.x = msg->pose.pose.position.x;  
+    currPose_.pose.position.y = msg->pose.pose.position.y;
+    currPose_.pose.position.z = msg->pose.pose.position.z;
+    currPose_.pose.orientation.x = msg->pose.pose.orientation.x; 
+    currPose_.pose.orientation.y = msg->pose.pose.orientation.y; 
+    currPose_.pose.orientation.z = msg->pose.pose.orientation.z; 
+    currPose_.pose.orientation.w = msg->pose.pose.orientation.w; 
 
+    tf2::Quaternion q(currPose_.pose.orientation.x, 
+                      currPose_.pose.orientation.y, 
+                      currPose_.pose.orientation.z, 
+                      currPose_.pose.orientation.w); 
+    
+    tf2::Matrix3x3 m(q);
+
+    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
+    double roll, pitch, yaw; 
+    m.getRPY(roll, pitch, yaw);   
+
+    currentYaw_ = yaw; 
+
+    // Output yaw (needed for pose estimation)
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 }
 
 void UavCtl::cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg) 

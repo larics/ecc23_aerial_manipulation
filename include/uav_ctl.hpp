@@ -27,6 +27,7 @@
 #include "sensor_msgs/msg/joy.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -69,6 +70,7 @@ class UavCtl: public rclcpp::Node
 
         // parameters
         std::string                                                                     world_name_;
+        bool                                                                            use_gt_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
         float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw;
         OnSetParametersCallbackHandle::SharedPtr                                        callback_handle_;
@@ -92,6 +94,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSubUsv_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                            currOdomSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
         rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr    cmdPoseSub_; 
@@ -208,6 +211,7 @@ class UavCtl: public rclcpp::Node
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
+        void curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg); 
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
         void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   
         void det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 

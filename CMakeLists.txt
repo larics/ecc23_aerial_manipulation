@@ -13,6 +13,7 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_msgs REQUIRED)
 # PID controller
@@ -35,7 +36,7 @@ target_include_directories(uav_joy
   
 # Add target dependencies for correct linking
 ament_target_dependencies(uav_ctl
-  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs tf2_ros tf2_msgs jlb_pid mbzirc_aerial_manipulation_msgs)
+  rclcpp std_msgs geometry_msgs std_srvs sensor_msgs nav_msgs tf2_ros tf2_msgs jlb_pid mbzirc_aerial_manipulation_msgs)
 
 ament_target_dependencies(uav_joy
   rclcpp std_msgs geometry_msgs std_srvs sensor_msgs mbzirc_aerial_manipulation_msgs)
