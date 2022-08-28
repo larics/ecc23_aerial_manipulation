@@ -100,6 +100,11 @@ void UavCtl::init_params()
     this->declare_parameter<bool>("use_gt", true);
     this->get_parameter("use_gt", use_gt_);
 
+    if (use_gt_)
+    {
+        RCLCPP_WARN_STREAM(this->get_logger(), "Using ground truth!");
+    }
+
     this->declare_parameter<float>("Kp_h", 0.3); 
     this->get_parameter("Kp_h", Kp_h); 
     this->declare_parameter<float>("Kd_h", 0.05); 
@@ -641,9 +646,12 @@ void UavCtl::timer_callback()
         
         if (current_state_ == GO_TO_DROP) goToDropControl(cmdVel_); 
         
-        if( current_state_ == DROP) dropControl(cmdVel_); 
+        if (current_state_ == DROP) dropControl(cmdVel_); 
 
-        cmdVelPub_->publish(cmdVel_); 
+        if (current_state_ != INIT_STATE)
+        {
+            cmdVelPub_->publish(cmdVel_); 
+        }
         
         // Publish current state
         std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 

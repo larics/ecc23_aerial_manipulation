@@ -166,18 +166,19 @@ class UavCtl: public rclcpp::Node
         {   
             IDLE = 0, 
             JOYSTICK = 1, 
-            POSITION = 3,  
-            SERVOING = 4, 
-            APPROACH = 5,  
-            PRE_GRASP = 6, 
-            GRASP = 7, 
-            LIFT = 8, 
-            GO_TO_DROP = 9, 
-            DROP = 10
+            POSITION = 2,  
+            SERVOING = 3, 
+            APPROACH = 4,  
+            PRE_GRASP = 5, 
+            GRASP = 6, 
+            LIFT = 7, 
+            GO_TO_DROP = 8, 
+            DROP = 9,
+            INIT_STATE = 10
         };
 
          // depends on num states
-        const char* stateNames[10] = 
+        const char* stateNames[11] = 
         {
             stringify( IDLE ), 
             stringify( JOYSTICK ), 
@@ -188,11 +189,12 @@ class UavCtl: public rclcpp::Node
             stringify( GRASP ), 
             stringify( LIFT ), 
             stringify( GO_TO_DROP ),
-            stringify( DROP )
+            stringify( DROP ),
+            stringify( INIT_STATE )
         }; 
 
       
-        enum state                                                          current_state_ = IDLE;
+        enum state                                                          current_state_ = INIT_STATE;
 
 
         // init methods
