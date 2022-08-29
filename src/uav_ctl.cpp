@@ -66,8 +66,8 @@ void UavCtl::init()
     takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
     
     // Object detection
-    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/hsv_filter/detected_point"), 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
-    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(std::string("/drone_detection/detected_point"), 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
+    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
+    usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -122,6 +122,11 @@ void UavCtl::init_params()
     this->get_parameter("Kp_yaw", Kp_yaw); 
     this->declare_parameter<float>("Kd_yaw", 0.05); 
     this->get_parameter("Kd_yaw", Kd_yaw); 
+    // TODO: Check namespaces for semantic segmentation
+    this->declare_parameter<std::string>("detected_object_topic", "/seg_rgb_filter/detected_point"); 
+    this->get_parameter("detected_object_topic", detected_object_topic); 
+    this->declare_parameter<std::string>("detected_drone_topic", "/drone_detection/detected_point"); 
+    this->get_parameter("detected_drone_topic", detected_drone_topic); 
 }
 
 rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(

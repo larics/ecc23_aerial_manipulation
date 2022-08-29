@@ -70,6 +70,8 @@ class UavCtl: public rclcpp::Node
 
         // parameters
         std::string                                                                     world_name_;
+        std::string                                                                     detected_object_topic;
+        std::string                                                                     detected_drone_topic; 
         bool                                                                            use_gt_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
         float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw;
