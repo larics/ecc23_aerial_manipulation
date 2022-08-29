@@ -341,10 +341,9 @@ void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::Shared
 {
     // https://answers.ros.org/question/385299/imu-with-magnetometer-read-absolute-position/
     // https://digilent.com/blog/how-to-convert-magnetometer-data-into-compass-heading/
-    double mag_x, mag_y, mag_z; 
+    double mag_x, mag_y;
     mag_x = msg->magnetic_field.x; 
-    mag_y = msg->magnetic_field.y; 
-    mag_z = msg->magnetic_field.z; 
+    mag_y = msg->magnetic_field.y;  
 
     if(mag_x != 0){
         magHeadingRad_ = atan2(mag_y, mag_x);
@@ -404,19 +403,14 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 {
 
     // Timestamp comparison
-
     RCLCPP_INFO_ONCE(this->get_logger(), "Recieved first detected_obj_callback"); 
     detObjPose_.header = msg->header; 
     detObjPose_.point.x = msg->point.z;
     detObjPose_.point.y = msg->point.y; 
     detObjPose_.point.z = - msg->point.x; 
 
-    float x = detObjPose_.point.x; 
-    float y = detObjPose_.point.y;
-    float z = detObjPose_.point.z; 
-
-    bool cond_x = std::abs(x) < 1.0;
-    bool cond_y = std::abs(y) < 1.0;
+    bool cond_x = std::abs(detObjPose_.point.x) < 1.0;
+    bool cond_y = std::abs(detObjPose_.point.y) < 1.0;
 
     // RCLCPP_INFO_STREAM(this->get_logger(), "x: " << std::abs(x) << "\ny: " << std::abs(y) << "\nz" << z); 
     //RCLCPP_INFO_STREAM(this->get_logger(), "abs dist y" << std::abs(y)); 
@@ -439,7 +433,7 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     }
 }
 
-void UavCtl::docking_finished_callback(const std_msgs::msg::Bool::SharedPtr msg)
+void UavCtl::docking_finished_callback(const std_msgs::msg::Bool::SharedPtr /* unused */)
 {
     // Maybe check time 
     usvFinishedDocking_ = true; 
@@ -500,8 +494,8 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 }  
 
 // service callbacks
-bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
-                              std_srvs::srv::Empty::Response::SharedPtr res)
+bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr /*unused */, 
+                              std_srvs::srv::Empty::Response::SharedPtr /* unused */)
 {
 
     auto finger_pos_msg = std_msgs::msg::Float64(); 
@@ -515,8 +509,8 @@ bool UavCtl::close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
     return true; 
 }
 
-bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
-                            std_srvs::srv::Empty::Response::SharedPtr res)
+bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr /* unused */, 
+                            std_srvs::srv::Empty::Response::SharedPtr /* unused */)
 {
 
     auto finger_pos_msg = std_msgs::msg::Float64(); 
@@ -531,8 +525,8 @@ bool UavCtl::open_gripper(const std_srvs::srv::Empty::Request::SharedPtr req,
         
 }
 
-bool UavCtl::start_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
-                           std_srvs::srv::Empty::Response::SharedPtr res)
+bool UavCtl::start_suction(const std_srvs::srv::Empty::Request::SharedPtr /* unused */, 
+                           std_srvs::srv::Empty::Response::SharedPtr /* unused */)
 {
     bool start_suction = true; 
 
@@ -540,11 +534,13 @@ bool UavCtl::start_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
     msg.data = start_suction; 
 
     gripperCmdSuctionPub_->publish(msg);
+
+    return true; 
     
 }
 
-bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req, 
-                          std_srvs::srv::Empty::Response::SharedPtr res)
+bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr /* unused */, 
+                          std_srvs::srv::Empty::Response::SharedPtr /* unused */)
 {
     bool start_suction = false; 
 
@@ -552,6 +548,8 @@ bool UavCtl::stop_suction(const std_srvs::srv::Empty::Request::SharedPtr req,
     msg.data = start_suction; 
 
     gripperCmdSuctionPub_->publish(msg); 
+
+    return true; 
 
 
 }
@@ -575,6 +573,8 @@ bool UavCtl::change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeStat
         RCLCPP_INFO_STREAM(this->get_logger(), "Failed switching to state " << req->state); 
         res->success = false; 
     } 
+
+    return res->success; 
         
 
 }
@@ -603,6 +603,8 @@ bool UavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Reque
     current_state_ = IDLE;
 
     res->success = true;
+
+    return res->success; 
 
 }
 
@@ -650,7 +652,7 @@ void UavCtl::timer_callback()
                  
         if (current_state_ == PRE_GRASP)    preGraspControl(cmdVel_); 
         
-        if (current_state_ == GRASP)        graspControl(cmdVel_); 
+        if (current_state_ == GRASP)        graspControl(); 
         
         if (current_state_ == LIFT)         liftControl(cmdVel_); 
         
@@ -861,7 +863,7 @@ void UavCtl::preGraspControl(geometry_msgs::msg::Twist& cmdVel)
             
 }
 
-void UavCtl::graspControl(geometry_msgs::msg::Twist& cmdVel)
+void UavCtl::graspControl()
 {
     RCLCPP_INFO_ONCE(this->get_logger(), "[GRASP] Grasping an object!"); 
     std_msgs::msg::Bool suction_msg; suction_msg.data = true; 
@@ -918,10 +920,10 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
 
     if(!usvPosReciv || time_diff > 0.5)
     {
-        cmdVel_.linear.x = 0.0 + go_to_drop_compensate_x_;
-        cmdVel_.linear.y = 0.0 + go_to_drop_compensate_y_; 
-        cmdVel_.linear.z = 0.0 + go_to_drop_compensate_z_; 
-        cmdVel_.angular.z = 0.0;
+        cmdVel.linear.x = 0.0 + go_to_drop_compensate_x_;
+        cmdVel.linear.y = 0.0 + go_to_drop_compensate_y_; 
+        cmdVel.linear.z = 0.0 + go_to_drop_compensate_z_; 
+        cmdVel.angular.z = 0.0;
         return; 
     }
 
@@ -961,12 +963,12 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     go_to_drop_compensate_z_ += (cmd_z_desired - go_to_drop_vel_z_) * compensation_factor_z;
     
     //Set velocities
-    cmdVel_.linear.x = cmd_x_desired + go_to_drop_compensate_x_;
-    cmdVel_.linear.y = cmd_y_desired + go_to_drop_compensate_y_;
-    cmdVel_.linear.z = cmd_z_desired + go_to_drop_compensate_z_; 
+    cmdVel.linear.x = cmd_x_desired + go_to_drop_compensate_x_;
+    cmdVel.linear.y = cmd_y_desired + go_to_drop_compensate_y_;
+    cmdVel.linear.z = cmd_z_desired + go_to_drop_compensate_z_; 
     
     double Kp_yaw = 1.0;
-    cmdVel_.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+    cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
     
     /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
@@ -976,13 +978,13 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y << ", " << dropOffPoint_.point.z );
     RCLCPP_INFO_STREAM(this->get_logger(), "-----------------------------" );
     */
-   
+
     if(std::abs(dropOffPoint_.point.x) < 0.2 && std::abs(dropOffPoint_.point.y < 0.2) && std::abs(dropOffPoint_.point.z) < 4.0 )
     {   
         current_state_ = DROP; 
-        cmdVel_.linear.x = 0.0 + go_to_drop_compensate_x_; 
-        cmdVel_.linear.y = 0.0 + go_to_drop_compensate_y_; 
-        cmdVel_.linear.z = 0.0 + go_to_drop_compensate_z_;           
+        cmdVel.linear.x = 0.0 + go_to_drop_compensate_x_; 
+        cmdVel.linear.y = 0.0 + go_to_drop_compensate_y_; 
+        cmdVel.linear.z = 0.0 + go_to_drop_compensate_z_;           
     }
     usvPosReciv = false;
 }

@@ -285,11 +285,11 @@ class UavCtl: public rclcpp::Node
         double calcPidCmd(jlbpid::Controller& controller, double cmd_sp, double cmd_mv); 
         void setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config); 
         // state related 
+        void graspControl(); 
         void positionControl(geometry_msgs::msg::Twist& cmdVel); 
         void servoControl(geometry_msgs::msg::Twist& cmdVel); 
         void approachControl(geometry_msgs::msg::Twist& cmdVel); 
         void preGraspControl(geometry_msgs::msg::Twist& cmdVel); 
-        void graspControl(geometry_msgs::msg::Twist& cmdVel); 
         void liftControl(geometry_msgs::msg::Twist& cmdVel); 
         void goToDropControl(geometry_msgs::msg::Twist& cmdVel); 
         void dropControl(geometry_msgs::msg::Twist& cmdVel); 
