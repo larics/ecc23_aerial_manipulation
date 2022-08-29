@@ -216,8 +216,6 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
     currPose_.pose.orientation.z = msg->pose.orientation.z; 
     currPose_.pose.orientation.w = msg->pose.orientation.w; 
 
-    
-
     tf2::Quaternion q(currPose_.pose.orientation.x, 
                       currPose_.pose.orientation.y, 
                       currPose_.pose.orientation.z, 
@@ -900,9 +898,10 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
     if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
     {   
         
+        RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] Called arm tracking!"); 
         auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
         callArmClient_->async_send_request(req_); 
-
+       
         cmdVel.linear.z = 0.0; 
         cmdVel.angular.z = 0.0; 
         current_state_ = GO_TO_DROP; 
@@ -955,7 +954,7 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
 
     double compensation_factor_xy = compensation_factor_start_xy_ - (float)compensation_counter_ / (float)compensation_iterations_ * (compensation_factor_start_xy_ - compensation_factor_end_xy_);
     double compensation_factor_z = compensation_factor_start_z_ - (float)compensation_counter_ / (float)compensation_iterations_ * (compensation_factor_start_z_ - compensation_factor_end_z_);
-    RCLCPP_INFO_STREAM(this->get_logger(), "compensation factor = " << compensation_factor_xy);
+    //RCLCPP_INFO_STREAM(this->get_logger(), "compensation factor = " << compensation_factor_xy);
     
     go_to_drop_compensate_x_ += (cmd_x_desired - go_to_drop_vel_x_) * compensation_factor_xy;
     go_to_drop_compensate_y_ += (cmd_y_desired - go_to_drop_vel_y_) * compensation_factor_xy;
@@ -969,13 +968,15 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     double Kp_yaw = 1.0;
     cmdVel_.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
     
+    /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
     RCLCPP_INFO_STREAM(this->get_logger(), "velocity commands  = " << cmdVel_.linear.x << ", " << cmdVel_.linear.y << ", " << cmdVel_.linear.z);
     RCLCPP_INFO_STREAM(this->get_logger(), "compensation  = " << go_to_drop_compensate_x_ << ", " << go_to_drop_compensate_y_ << ", " << go_to_drop_compensate_z_ );
     RCLCPP_INFO_STREAM(this->get_logger(), "pid output  = " << cmd_x_desired << ", " << cmd_y_desired << ", " << cmd_z_desired );
     RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y << ", " << dropOffPoint_.point.z );
     RCLCPP_INFO_STREAM(this->get_logger(), "-----------------------------" );
-    
+    */
+   
     if(std::abs(dropOffPoint_.point.x) < 0.2 && std::abs(dropOffPoint_.point.y < 0.2) && std::abs(dropOffPoint_.point.z) < 4.0 )
     {   
         current_state_ = DROP; 
