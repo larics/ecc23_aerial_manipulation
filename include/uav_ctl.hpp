@@ -161,6 +161,30 @@ class UavCtl: public rclcpp::Node
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
 
+        double go_to_drop_vel_x_ = 0.0;
+        double go_to_drop_vel_y_ = 0.0;
+        double go_to_drop_vel_z_ = 0.0;
+
+        double go_to_drop_pos_x_ = 0.0;
+        double go_to_drop_pos_y_ = 0.0;
+        double go_to_drop_pos_z_ = 0.0;
+
+        double go_to_drop_compensate_x_ = 0.0;
+        double go_to_drop_compensate_y_ = 0.0;
+        double go_to_drop_compensate_z_ = 0.0;
+
+        double ex_dropOffPoint_stamp_ = 0.0;
+
+        bool first_time_entering_go_to_drop_ = true;
+
+        uint32_t compensation_counter_ = 0;
+        uint32_t compensation_iterations_ = 200;
+
+        double compensation_factor_start_xy_ = 0.3;
+        double compensation_factor_end_xy_ = 0.02;
+        double compensation_factor_start_z_ = 0.05;
+        double compensation_factor_end_z_ = 0.02;
+
         // State machine
         enum state 
         {   
