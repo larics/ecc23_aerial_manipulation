@@ -65,6 +65,8 @@ void UavCtl::init()
     changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>("change_state", std::bind(&UavCtl::change_state, this, _1, _2)); 
     takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
     
+    // Clients
+    callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("usv_manipulate_object"); 
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
@@ -212,6 +214,8 @@ void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr
     currPose_.pose.orientation.y = msg->pose.orientation.y; 
     currPose_.pose.orientation.z = msg->pose.orientation.z; 
     currPose_.pose.orientation.w = msg->pose.orientation.w; 
+
+    
 
     tf2::Quaternion q(currPose_.pose.orientation.x, 
                       currPose_.pose.orientation.y, 
@@ -893,7 +897,10 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25);  
 
     if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
-    {
+    {   
+        
+        auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
+        callArmClient_->async_send_request(req_); 
 
         cmdVel.linear.z = 0.0; 
         cmdVel.angular.z = 0.0; 
