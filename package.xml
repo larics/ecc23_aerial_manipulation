@@ -28,6 +28,7 @@
   <depend>tf2_ros</depend>
   <depend>tf2_msgs</depend>
   <depend>jlb_pid</depend>
+  <depend>mbzirc_msgs</depend>
   <depend>mbzirc_aerial_manipulation_msgs</depend>
   
   <export>

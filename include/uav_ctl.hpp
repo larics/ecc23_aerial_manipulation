@@ -39,6 +39,7 @@
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_error.hpp"
 #include "mbzirc_aerial_manipulation_msgs/srv/change_state.hpp"
 #include "mbzirc_aerial_manipulation_msgs/srv/takeoff.hpp"
+#include "mbzirc_msgs/srv/usv_manipulate_object.hpp"
 
 //* srvs
 #include "std_srvs/srv/trigger.hpp"
@@ -116,6 +117,8 @@ class UavCtl: public rclcpp::Node
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    stopSuctionSrv_; 
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>::SharedPtr       changeStateSrv_; 
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr           takeoffSrv_; 
+
+        rclcpp::Client<mbzirc_msgs::srv::UsvManipulateObject>::SharedPtr                    callArmClient_; 
         
         // timers
         rclcpp::TimerBase::SharedPtr                                        timer_;

@@ -893,7 +893,10 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25);  
 
     if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
-    {
+    {   
+        
+        auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
+        callArmClient_->async_send_request(req_); 
 
         cmdVel.linear.z = 0.0; 
         cmdVel.angular.z = 0.0; 
