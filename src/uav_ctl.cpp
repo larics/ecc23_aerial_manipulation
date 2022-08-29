@@ -376,8 +376,6 @@ void UavCtl::pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg)
                 msg.pose.position.y = transform_msg.transform.translation.y; 
                 msg.pose.position.z = transform_msg.transform.translation.z; 
                 msg.pose.orientation = transform_msg.transform.rotation; 
-
-                poseGtPub_->publish(msg); 
                 
                 // Also broadcast as tf
                 staticPoseTfBroadcaster_->sendTransform(transform_msg);
