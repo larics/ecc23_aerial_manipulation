@@ -66,7 +66,8 @@ void UavCtl::init()
     takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
     
     // Clients
-    callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("usv_manipulate_object"); 
+    callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("/usv_manipulate_object"); 
+
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
