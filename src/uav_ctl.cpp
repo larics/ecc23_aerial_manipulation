@@ -1,6 +1,6 @@
 #include "uav_ctl.hpp"
 
-
+using namespace std::chrono_literals;
 // How to call this method with a param? 
 UavCtl::UavCtl(): Node("uav_ctl")
 {
@@ -584,7 +584,12 @@ bool UavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Reque
     get_pose_dist();
 
     // Wait until position is reached.
-    while (poseError_.abs_position > 0.1);
+    while (poseError_.abs_position > 0.15)
+    {
+        // TODO: How to throttle? 
+        rclcpp::sleep_for(std::chrono::milliseconds(100));
+        RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << poseError_.abs_position);
+    };
 
     // Change state and report back
     current_state_ = IDLE;
