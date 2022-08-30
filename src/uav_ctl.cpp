@@ -38,6 +38,7 @@ void UavCtl::init()
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("gripper/suction_on", 1); 
     currentStatePub_       = this->create_publisher<std_msgs::msg::String>("state", 1); 
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
+    manipulatorStopFollowing_ = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/stop_following", 1);
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
 
@@ -1060,6 +1061,10 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     if(pos_err_sum < 0.8)
     {
         current_state_ = SERVOING;
+
+        std_msgs::msg::Bool msg; 
+        msg.data = true; 
+        manipulatorStopFollowing_->publish(msg);
     }
     /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
