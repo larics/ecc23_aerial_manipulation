@@ -134,6 +134,7 @@ class UavCtl: public rclcpp::Node
         jlbpid::Controller                                                  y_drop_controller_; 
         jlbpid::Controller                                                  y_go_to_vessel_controller_; 
         jlbpid::Controller                                                  z_controller_; 
+        jlbpid::Controller                                                  z_go_to_vessel_controller_; 
         jlbpid::Controller                                                  yaw_controller_;  
         jlbpid::PID                                                         pid; 
         jlbpid::Config                                                      config; 
@@ -213,11 +214,12 @@ class UavCtl: public rclcpp::Node
             GO_TO_DROP = 8, 
             DROP = 9,
             INIT_STATE = 10,
-            GO_TO_VESSEL = 11
+            GO_TO_VESSEL = 11,
+            SEARCH = 12
         };
 
          // depends on num states
-        const char* stateNames[12] = 
+        const char* stateNames[13] = 
         {
             stringify( IDLE ), 
             stringify( JOYSTICK ), 
@@ -230,7 +232,8 @@ class UavCtl: public rclcpp::Node
             stringify( GO_TO_DROP ),
             stringify( DROP ),
             stringify( INIT_STATE ),
-            stringify( GO_TO_VESSEL )
+            stringify( GO_TO_VESSEL ),
+            stringify( SEARCH )
         }; 
 
       

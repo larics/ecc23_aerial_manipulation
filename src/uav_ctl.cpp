@@ -40,7 +40,7 @@ void UavCtl::init()
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
-    startFollowingPub_  = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_following", 1); 
+    startFollowingPub_     = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_following", 1); 
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -209,7 +209,8 @@ void UavCtl::init_ctl()
     config.lower_limit = -1.0;  
     pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
     setPidController(x_go_to_vessel_controller_, pid, config);
-    setPidController(y_go_to_vessel_controller_, pid, config); 
+    setPidController(y_go_to_vessel_controller_, pid, config);
+    setPidController(z_go_to_vessel_controller_, pid, config);  
 
 }
 
@@ -675,7 +676,7 @@ void UavCtl::timer_callback()
 
         if (current_state_ == POSITION)     positionControl(cmdVel_); 
 
-        if (current_state_ == GO_TO_VESSEL) goToVesselControl(cmdVel_); 
+        if (current_state_ == GO_TO_VESSEL || current_state_ == SEARCH) goToVesselControl(cmdVel_); 
 
         if (current_state_ == SERVOING)     servoControl(cmdVel_); 
         
@@ -971,7 +972,7 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         return;
     }
 
-    double z_ref = 7.0;
+    double z_ref = 6.5;
     if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
         z_ref = 3.5;
     
@@ -1042,11 +1043,11 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
         return; 
     }
 
-    double z_ref = 3.0;
+    double z_ref = 7.0;
     
     double cmd_x_desired = -calcPidCmd(x_go_to_vessel_controller_, 0, vesselPoint_.point.x); 
     double cmd_y_desired = -calcPidCmd(y_go_to_vessel_controller_, 0, vesselPoint_.point.y); 
-    double cmd_z_desired = -calcPidCmd(z_controller_, -z_ref, vesselPoint_.point.z); 
+    double cmd_z_desired = -calcPidCmd(z_go_to_vessel_controller_, -z_ref, vesselPoint_.point.z); 
     
     //Set velocities
     cmdVel.linear.x = cmd_x_desired;
@@ -1062,7 +1063,7 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_STREAM(this->get_logger(), "pos_err_sum  = " << pos_err_sum );
     if(pos_err_sum < 0.8)
     {
-        current_state_ = SERVOING;
+        current_state_ = SEARCH;
 
         std_msgs::msg::Bool msg; 
         msg.data = false; 
