@@ -76,6 +76,7 @@ class UavCtl: public rclcpp::Node
         bool                                                                            use_gt_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
         float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw;
+        bool                                                                            start_on_usv_ = false;
         OnSetParametersCallbackHandle::SharedPtr                                        callback_handle_;
         rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
 
@@ -100,6 +101,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                            currOdomSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
+        rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   vesselPoseSub_; 
         rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr    cmdPoseSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                bottomContactSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                leftContactSub_; 
@@ -158,6 +160,7 @@ class UavCtl: public rclcpp::Node
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
         geometry_msgs::msg::PointStamped                                    dropOffPoint_; 
+        geometry_msgs::msg::PointStamped                                    vesselPoint_; 
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
         sensor_msgs::msg::Imu                                               currImuData_; 
@@ -178,7 +181,7 @@ class UavCtl: public rclcpp::Node
         double go_to_drop_compensate_y_ = 0.0;
         double go_to_drop_compensate_z_ = 0.0;
 
-        double ex_dropOffPoint_stamp_ = 0.0;
+        double ex_usvPoint_stamp_ = 0.0;
 
         bool first_time_entering_go_to_drop_ = true;
 
@@ -189,6 +192,9 @@ class UavCtl: public rclcpp::Node
         double compensation_factor_end_xy_ = 0.02;
         double compensation_factor_start_z_ = 0.05;
         double compensation_factor_end_z_ = 0.02;
+
+        //start on usv devel
+        bool servoing_ready_flag_ = false;
 
         // State machine
         enum state 
@@ -203,11 +209,12 @@ class UavCtl: public rclcpp::Node
             LIFT = 7, 
             GO_TO_DROP = 8, 
             DROP = 9,
-            INIT_STATE = 10
+            INIT_STATE = 10,
+            GO_TO_VESSEL = 11
         };
 
          // depends on num states
-        const char* stateNames[11] = 
+        const char* stateNames[12] = 
         {
             stringify( IDLE ), 
             stringify( JOYSTICK ), 
@@ -219,7 +226,8 @@ class UavCtl: public rclcpp::Node
             stringify( LIFT ), 
             stringify( GO_TO_DROP ),
             stringify( DROP ),
-            stringify( INIT_STATE )
+            stringify( INIT_STATE ),
+            stringify( GO_TO_VESSEL )
         }; 
 
       
@@ -246,6 +254,7 @@ class UavCtl: public rclcpp::Node
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
         void det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);   
         void det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 
+        void det_vessel_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg); 
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
         void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
         void docking_finished_callback(const std_msgs::msg::Bool::SharedPtr msg); 
@@ -292,6 +301,7 @@ class UavCtl: public rclcpp::Node
         void preGraspControl(geometry_msgs::msg::Twist& cmdVel); 
         void liftControl(geometry_msgs::msg::Twist& cmdVel); 
         void goToDropControl(geometry_msgs::msg::Twist& cmdVel); 
+        void goToVesselControl(geometry_msgs::msg::Twist& cmdVel); 
         void dropControl(geometry_msgs::msg::Twist& cmdVel); 
 
 
