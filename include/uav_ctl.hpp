@@ -128,8 +128,10 @@ class UavCtl: public rclcpp::Node
         // controllers
         jlbpid::Controller                                                  x_controller_; 
         jlbpid::Controller                                                  x_drop_controller_; 
+        jlbpid::Controller                                                  x_go_to_vessel_controller_; 
         jlbpid::Controller                                                  y_controller_;
         jlbpid::Controller                                                  y_drop_controller_; 
+        jlbpid::Controller                                                  y_go_to_vessel_controller_; 
         jlbpid::Controller                                                  z_controller_; 
         jlbpid::Controller                                                  yaw_controller_;  
         jlbpid::PID                                                         pid; 

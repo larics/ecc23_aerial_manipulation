@@ -203,6 +203,14 @@ void UavCtl::init_ctl()
     setPidController(x_drop_controller_, pid, config);
     setPidController(y_drop_controller_, pid, config); 
 
+    // UAV position control ---> WITH MANIPULATOR FEEDBACK FOR GO_TO_VESSEL
+    config.windup_limit = 2.0;
+    config.upper_limit = 1.0; 
+    config.lower_limit = -1.0;  
+    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
+    setPidController(x_go_to_vessel_controller_, pid, config);
+    setPidController(y_go_to_vessel_controller_, pid, config); 
+
 }
 
 // subscriber callbacks
@@ -1031,10 +1039,10 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
         return; 
     }
 
-    double z_ref = 4.0;
+    double z_ref = 3.0;
     
-    double cmd_x_desired = -calcPidCmd(x_controller_, 0, vesselPoint_.point.x); 
-    double cmd_y_desired = -calcPidCmd(y_controller_, 0, vesselPoint_.point.y); 
+    double cmd_x_desired = -calcPidCmd(x_go_to_vessel_controller_, 0, vesselPoint_.point.x); 
+    double cmd_y_desired = -calcPidCmd(y_go_to_vessel_controller_, 0, vesselPoint_.point.y); 
     double cmd_z_desired = -calcPidCmd(z_controller_, -z_ref, vesselPoint_.point.z); 
     
     //Set velocities
@@ -1048,8 +1056,8 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     double pos_err_sum = sqrt(  vesselPoint_.point.x*vesselPoint_.point.x +
                                 vesselPoint_.point.y*vesselPoint_.point.y +
                                 (-z_ref - vesselPoint_.point.z)*(-z_ref - vesselPoint_.point.z) );
-    //RCLCPP_INFO_STREAM(this->get_logger(), "pos_err_sum  = " << pos_err_sum );
-    if(pos_err_sum < 0.3)
+    RCLCPP_INFO_STREAM(this->get_logger(), "pos_err_sum  = " << pos_err_sum );
+    if(pos_err_sum < 0.8)
     {
         current_state_ = SERVOING;
     }
