@@ -38,10 +38,9 @@ void UavCtl::init()
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("gripper/suction_on", 1); 
     currentStatePub_       = this->create_publisher<std_msgs::msg::String>("state", 1); 
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
-    manipulatorStopFollowing_ = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/stop_following", 1);
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
-
+    startManipulationPub_  = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_manipulation", 1); 
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -673,7 +672,6 @@ void UavCtl::timer_callback()
 {   
     
     if (nodeInitialized){
-        
 
         if (current_state_ == POSITION)     positionControl(cmdVel_); 
 
@@ -932,7 +930,11 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
 
     if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
     {   
+        std_msgs::msg::Bool start_manipulation_msg; 
+        start_manipulation_msg.data = true;  
+        startManipulationPub_->publish(start_manipulation_msg); 
         
+        // Services are not implemented!
         RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] Called arm tracking!"); 
         auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
         callArmClient_->async_send_request(req_); 
@@ -1063,8 +1065,8 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
         current_state_ = SERVOING;
 
         std_msgs::msg::Bool msg; 
-        msg.data = true; 
-        manipulatorStopFollowing_->publish(msg);
+        msg.data = false; 
+        startManipulationPub_->publish(msg);
     }
     /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
