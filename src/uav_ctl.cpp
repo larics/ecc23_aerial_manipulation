@@ -859,16 +859,17 @@ void UavCtl::servoControl(geometry_msgs::msg::Twist& cmdVel)
     // calc commands
     double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
     double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
-    double cmd_z = calcPropCmd(Kp_xy, 3.0, currPose_.pose.position.z, limit_xy); 
+    double cmd_z = calcPropCmd(Kp_xy, 1.2, currPose_.pose.position.z, limit_xy); 
     cmdVel.linear.x = cmd_x;
     cmdVel.linear.y = cmd_y; 
     cmdVel.linear.z = cmd_z; 
 
     // condition
     bool ack_cond = detObjPose_.point.x == 0 && detObjPose_.point.y == 0; 
-    bool dist_cond = std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y) < 0.1; 
+    bool dist_cond = std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y) < 0.1 && std::abs(currPose_.pose.position.z - 1.2 )< 0.2; 
     // Commented out because logic is changed
     if (dist_cond && !ack_cond) {
+        
         current_state_ = APPROACH;
         RCLCPP_INFO_STREAM(this->get_logger(), "x:" << detObjPose_.point.x); 
         RCLCPP_INFO_STREAM(this->get_logger(), "y:" << detObjPose_.point.y); 
