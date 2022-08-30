@@ -1,4 +1,5 @@
 #include "uav_ctl.hpp"
+#include "math.h"
 
 using namespace std::chrono_literals;
 // How to call this method with a param? 
@@ -71,6 +72,7 @@ void UavCtl::init()
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
+    vesselPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>("/drone_detection/vessel_detected_point", 1, std::bind(&UavCtl::det_vessel_callback, this, _1));
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -130,6 +132,8 @@ void UavCtl::init_params()
     this->get_parameter("detected_object_topic", detected_object_topic); 
     this->declare_parameter<std::string>("detected_drone_topic", "/drone_detection/detected_point"); 
     this->get_parameter("detected_drone_topic", detected_drone_topic); 
+    this->declare_parameter<bool>("start_on_usv", "/uav1/start_on_usv"); 
+    this->get_parameter("start_on_usv", start_on_usv_); 
 }
 
 rcl_interfaces::msg::SetParametersResult UavCtl::parametersCallback(
@@ -198,6 +202,14 @@ void UavCtl::init_ctl()
     pid.kp = 0.1; pid.ki = 0.0; pid.kd = 0.0; 
     setPidController(x_drop_controller_, pid, config);
     setPidController(y_drop_controller_, pid, config); 
+
+    // UAV position control ---> WITH MANIPULATOR FEEDBACK FOR GO_TO_VESSEL
+    config.windup_limit = 2.0;
+    config.upper_limit = 1.0; 
+    config.lower_limit = -1.0;  
+    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
+    setPidController(x_go_to_vessel_controller_, pid, config);
+    setPidController(y_go_to_vessel_controller_, pid, config); 
 
 }
 
@@ -415,7 +427,7 @@ void UavCtl::det_obj_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     // RCLCPP_INFO_STREAM(this->get_logger(), "x: " << std::abs(x) << "\ny: " << std::abs(y) << "\nz" << z); 
     //RCLCPP_INFO_STREAM(this->get_logger(), "abs dist y" << std::abs(y)); 
 
-    if(cond_x && cond_y && current_state_ == IDLE){
+    if(cond_x && cond_y && current_state_ == IDLE && servoing_ready_flag_){
         current_state_= SERVOING; 
     }
 
@@ -433,10 +445,28 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     }
 }
 
+void UavCtl::det_vessel_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+{
+    if(current_state_ == GO_TO_VESSEL)
+    {
+        usvPosReciv = true;
+        vesselPoint_.header = msg->header;  
+        vesselPoint_.point.x = msg->point.x;
+        vesselPoint_.point.y = msg->point.y; 
+        vesselPoint_.point.z = msg->point.z; 
+    }
+}
+
 void UavCtl::docking_finished_callback(const std_msgs::msg::Bool::SharedPtr /* unused */)
 {
     // Maybe check time 
     usvFinishedDocking_ = true; 
+    if(current_state_ == IDLE)
+    {
+        auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
+        callArmClient_->async_send_request(req_); 
+        current_state_ = GO_TO_VESSEL;
+    }
 }
 
 void UavCtl::bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -644,6 +674,8 @@ void UavCtl::timer_callback()
     if (nodeInitialized){
 
         if (current_state_ == POSITION)     positionControl(cmdVel_); 
+
+        if (current_state_ == GO_TO_VESSEL) goToVesselControl(cmdVel_); 
 
         if (current_state_ == SERVOING)     servoControl(cmdVel_); 
         
@@ -918,8 +950,8 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] active!"); 
 
     double time_now = this->get_clock()->now().seconds();
-    double time_diff = time_now - ex_dropOffPoint_stamp_;
-    ex_dropOffPoint_stamp_ = time_now;
+    double time_diff = time_now - ex_usvPoint_stamp_;
+    ex_usvPoint_stamp_ = time_now;
 
     if(!usvPosReciv || time_diff > 0.5)
     {
@@ -989,6 +1021,61 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         cmdVel.linear.y = 0.0 + go_to_drop_compensate_y_; 
         cmdVel.linear.z = 0.0 + go_to_drop_compensate_z_;           
     }
+    usvPosReciv = false;
+}
+
+
+void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
+{   
+    RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_VESSEL] active!"); 
+
+    double time_now = this->get_clock()->now().seconds();
+    double time_diff = time_now - ex_usvPoint_stamp_;
+    ex_usvPoint_stamp_ = time_now;
+
+    if(!usvPosReciv || time_diff > 0.5)
+    {
+        cmdVel.linear.x = 0.0;
+        cmdVel.linear.y = 0.0; 
+        cmdVel.linear.z = 0.0; 
+        cmdVel.angular.z = 0.0;
+        return; 
+    }
+
+    double z_ref = 3.0;
+    
+    double cmd_x_desired = -calcPidCmd(x_go_to_vessel_controller_, 0, vesselPoint_.point.x); 
+    double cmd_y_desired = -calcPidCmd(y_go_to_vessel_controller_, 0, vesselPoint_.point.y); 
+    double cmd_z_desired = -calcPidCmd(z_controller_, -z_ref, vesselPoint_.point.z); 
+    
+    //Set velocities
+    cmdVel.linear.x = cmd_x_desired;
+    cmdVel.linear.y = cmd_y_desired;
+    cmdVel.linear.z = cmd_z_desired; 
+    
+    double Kp_yaw = 1.0;
+    cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+    
+    double pos_err_sum = sqrt(  vesselPoint_.point.x*vesselPoint_.point.x +
+                                vesselPoint_.point.y*vesselPoint_.point.y +
+                                (-z_ref - vesselPoint_.point.z)*(-z_ref - vesselPoint_.point.z) );
+    RCLCPP_INFO_STREAM(this->get_logger(), "pos_err_sum  = " << pos_err_sum );
+    if(pos_err_sum < 0.8)
+    {
+        current_state_ = SERVOING;
+
+        std_msgs::msg::Bool msg; 
+        msg.data = false; 
+        startManipulationPub_->publish(msg);
+    }
+    /*
+    RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
+    RCLCPP_INFO_STREAM(this->get_logger(), "velocity commands  = " << cmdVel_.linear.x << ", " << cmdVel_.linear.y << ", " << cmdVel_.linear.z);
+    RCLCPP_INFO_STREAM(this->get_logger(), "compensation  = " << go_to_drop_compensate_x_ << ", " << go_to_drop_compensate_y_ << ", " << go_to_drop_compensate_z_ );
+    RCLCPP_INFO_STREAM(this->get_logger(), "pid output  = " << cmd_x_desired << ", " << cmd_y_desired << ", " << cmd_z_desired );
+    RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y << ", " << dropOffPoint_.point.z );
+    RCLCPP_INFO_STREAM(this->get_logger(), "-----------------------------" );
+    */
     usvPosReciv = false;
 }
 
