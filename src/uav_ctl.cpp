@@ -40,7 +40,7 @@ void UavCtl::init()
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
-    startManipulationPub_  = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_manipulation", 1); 
+    startFollowingPub_  = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_following", 1); 
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -932,7 +932,7 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
     {   
         std_msgs::msg::Bool start_manipulation_msg; 
         start_manipulation_msg.data = true;  
-        startManipulationPub_->publish(start_manipulation_msg); 
+        startFollowingPub_->publish(start_manipulation_msg); 
         
         // Services are not implemented!
         RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] Called arm tracking!"); 
@@ -1066,7 +1066,7 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
 
         std_msgs::msg::Bool msg; 
         msg.data = false; 
-        startManipulationPub_->publish(msg);
+        startFollowingPub_->publish(msg);
     }
     /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );

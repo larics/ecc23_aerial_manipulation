@@ -92,7 +92,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               gripperCmdSuctionPub_; 
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
-        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startManipulationPub_; 
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startFollowingPub_; 
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
