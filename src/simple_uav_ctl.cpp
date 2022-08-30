@@ -349,7 +349,7 @@ bool SimpleUavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff:
     while (poseError_.abs_position > 0.1);
 
     res->success = true;
-    return res;
+    return res->success;
 }
 
 void SimpleUavCtl::get_pose_dist()
