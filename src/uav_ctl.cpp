@@ -57,7 +57,7 @@ void UavCtl::init()
     topContactSub_         = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/top", 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
     centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/center", 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
     dockingFinishedSub_    = this->create_subscription<std_msgs::msg::Bool>("docking_finished", 1, std::bind(&UavCtl::docking_finished_callback, this, _1)); 
-    
+    takeoffToHeightSub_    = this->create_subscription<std_msgs::msg::Float64>("takeoff_to_height", 1, std::bind(&UavCtl::takeoff_to_height_callback, this, _1));
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
@@ -68,7 +68,8 @@ void UavCtl::init()
     
     // Clients
     callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("/usv_manipulate_object"); 
-
+    takeoffClient_ = this->create_client<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff");
+    
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
@@ -633,11 +634,24 @@ bool UavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Reque
     // Change state and report back
     current_state_ = IDLE;
 
+    if(first_takeoff_)
+    {
+        current_state_ = GO_TO_VESSEL;
+    }
+
     res->success = true;
 
     return res->success; 
 
 }
+
+
+void UavCtl::takeoff_to_height_callback(const std_msgs::msg::Float64 &msg)
+{   
+    auto req_ = std::make_shared<mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request>(); 
+    req_->relative_height = msg.data;
+    takeoffClient_->async_send_request(req_); 
+}   
 
 void UavCtl::get_pose_dist()
 {

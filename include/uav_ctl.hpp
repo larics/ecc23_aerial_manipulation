@@ -112,6 +112,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                dockingFinishedSub_; 
+        rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr                             takeoffToHeightSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
@@ -122,6 +123,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr           takeoffSrv_; 
 
         rclcpp::Client<mbzirc_msgs::srv::UsvManipulateObject>::SharedPtr                    callArmClient_; 
+        rclcpp::Client<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr            takeoffClient_; 
         
         // timers
         rclcpp::TimerBase::SharedPtr                                        timer_;
@@ -200,6 +202,8 @@ class UavCtl: public rclcpp::Node
         //start on usv devel
         bool servoing_ready_flag_ = false;
 
+        bool first_takeoff_ = true;
+
         // State machine
         enum state 
         {   
@@ -264,6 +268,7 @@ class UavCtl: public rclcpp::Node
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
         void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
         void docking_finished_callback(const std_msgs::msg::Bool::SharedPtr msg); 
+        void takeoff_to_height_callback(const std_msgs::msg::Float64 &msg); 
 
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
