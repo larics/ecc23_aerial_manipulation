@@ -440,6 +440,9 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     if(current_state_ == DROP || current_state_ == LIFT || current_state_ == GO_TO_DROP)
     {
         usvPosReciv = true;
+
+        //ex_usvPoint_stamp_ = this->get_clock()->now().seconds();
+
         dropOffPoint_.header = msg->header;  
         dropOffPoint_.point.x = msg->point.x;
         dropOffPoint_.point.y = msg->point.y; 
@@ -452,6 +455,9 @@ void UavCtl::det_vessel_callback(const geometry_msgs::msg::PointStamped::SharedP
     if(current_state_ == GO_TO_VESSEL)
     {
         usvPosReciv = true;
+
+        //ex_vesselPoint_stamp_ = this->get_clock()->now().seconds();
+
         vesselPoint_.header = msg->header;  
         vesselPoint_.point.x = msg->point.x;
         vesselPoint_.point.y = msg->point.y; 
@@ -1055,8 +1061,8 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_VESSEL] active!"); 
 
     double time_now = this->get_clock()->now().seconds();
-    double time_diff = time_now - ex_usvPoint_stamp_;
-    ex_usvPoint_stamp_ = time_now;
+    double time_diff = time_now - ex_vesselPoint_stamp_;
+    ex_vesselPoint_stamp_ = time_now;
 
     if(time_diff > 0.5)
     {
