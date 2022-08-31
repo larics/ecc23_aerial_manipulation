@@ -440,7 +440,7 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     {
         usvPosReciv = true;
 
-        //ex_usvPoint_stamp_ = this->get_clock()->now().seconds();
+        ex_usvPoint_stamp_ = this->get_clock()->now().seconds();
 
         dropOffPoint_.header = msg->header;  
         dropOffPoint_.point.x = msg->point.x;
@@ -455,7 +455,7 @@ void UavCtl::det_vessel_callback(const geometry_msgs::msg::PointStamped::SharedP
     {
         usvPosReciv = true;
 
-        //ex_vesselPoint_stamp_ = this->get_clock()->now().seconds();
+        ex_vesselPoint_stamp_ = this->get_clock()->now().seconds();
 
         vesselPoint_.header = msg->header;  
         vesselPoint_.point.x = msg->point.x;
@@ -978,10 +978,12 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_DROP] active!"); 
 
     double time_now = this->get_clock()->now().seconds();
-    double time_diff = time_now - ex_usvPoint_stamp_;
-    ex_usvPoint_stamp_ = time_now;
+    double control_loop_dt = time_now - ex_controlLoop_stamp_;
+    ex_controlLoop_stamp_ = time_now;
 
-    if(!usvPosReciv || time_diff > 0.5)
+    double time_since_last_msg = time_now - ex_usvPoint_stamp_;
+
+    if(!usvPosReciv && time_since_last_msg > 0.5)
     {
         cmdVel.linear.x = 0.0 + go_to_drop_compensate_x_;
         cmdVel.linear.y = 0.0 + go_to_drop_compensate_y_; 
@@ -1009,9 +1011,9 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     
     if(compensation_counter_ < compensation_iterations_) compensation_counter_++;
     
-    go_to_drop_vel_x_ = -(dropOffPoint_.point.x - go_to_drop_pos_x_) / time_diff;
-    go_to_drop_vel_y_ = -(dropOffPoint_.point.y - go_to_drop_pos_y_) / time_diff;
-    go_to_drop_vel_z_ = -(dropOffPoint_.point.z - go_to_drop_pos_z_) / time_diff;
+    go_to_drop_vel_x_ = -(dropOffPoint_.point.x - go_to_drop_pos_x_) / control_loop_dt;
+    go_to_drop_vel_y_ = -(dropOffPoint_.point.y - go_to_drop_pos_y_) / control_loop_dt;
+    go_to_drop_vel_z_ = -(dropOffPoint_.point.z - go_to_drop_pos_z_) / control_loop_dt;
     
     go_to_drop_pos_x_ = dropOffPoint_.point.x;
     go_to_drop_pos_y_ = dropOffPoint_.point.y;
@@ -1058,10 +1060,9 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_ONCE(this->get_logger(), "[GO_TO_VESSEL] active!"); 
 
     double time_now = this->get_clock()->now().seconds();
-    double time_diff = time_now - ex_vesselPoint_stamp_;
-    ex_vesselPoint_stamp_ = time_now;
+    double time_since_last_msg = time_now - ex_vesselPoint_stamp_;
 
-    if(time_diff > 0.5)
+    if(time_since_last_msg > 0.5)
     {
         cmdVel.linear.x = 0.0;
         cmdVel.linear.y = 0.0; 

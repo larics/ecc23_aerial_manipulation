@@ -187,6 +187,7 @@ class UavCtl: public rclcpp::Node
         double go_to_drop_compensate_z_ = 0.0;
 
         double ex_usvPoint_stamp_ = 0.0;
+        double ex_controlLoop_stamp_ = 0.0;
         double ex_vesselPoint_stamp_ = 0.0;
 
         bool first_time_entering_go_to_drop_ = true;

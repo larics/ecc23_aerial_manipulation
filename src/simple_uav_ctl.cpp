@@ -90,9 +90,9 @@ void SimpleUavCtl::init_params()
     this->get_parameter("Kp_y", Kp_y); 
     this->declare_parameter<float>("Kd_y", 0.05); 
     this->get_parameter("Kd_y", Kd_y); 
-    this->declare_parameter<float>("Kp_yaw", 0.05); 
+    this->declare_parameter<float>("Kp_yaw", 2); 
     this->get_parameter("Kp_yaw", Kp_yaw); 
-    this->declare_parameter<float>("Kd_yaw", 0.05); 
+    this->declare_parameter<float>("Kd_yaw", 0); 
     this->get_parameter("Kd_yaw", Kd_yaw); 
 }
 
@@ -346,7 +346,7 @@ bool SimpleUavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff:
     get_pose_dist();
 
     // Wait until position is reached.
-    while (poseError_.abs_position > 0.1);
+    while (poseError_.abs_position > 0.3);
 
     res->success = true;
     return res->success;
