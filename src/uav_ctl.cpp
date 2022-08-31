@@ -1,6 +1,8 @@
 #include "uav_ctl.hpp"
 #include "math.h"
 
+#include "baro_convert.hpp"
+
 using namespace std::chrono_literals;
 // How to call this method with a param? 
 UavCtl::UavCtl(): Node("uav_ctl")
@@ -57,17 +59,16 @@ void UavCtl::init()
     topContactSub_         = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/top", 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
     centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/center", 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
     takeoffToHeightSub_    = this->create_subscription<std_msgs::msg::Float64>("takeoff_to_height", 1, std::bind(&UavCtl::takeoff_to_height_callback, this, _1));
+    baroSub_               = this->create_subscription<sensor_msgs::msg::FluidPressure>("air_pressure", 1, std::bind(&UavCtl::baro_callback, this, _1));
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
     closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
     startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>("start_suction", std::bind(&UavCtl::start_suction, this, _1, _2)); 
     stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>("stop_suction", std::bind(&UavCtl::stop_suction, this, _1, _2)); 
     changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>("change_state", std::bind(&UavCtl::change_state, this, _1, _2)); 
-    takeoffSrv_               = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&UavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
-    
+
     // Clients
     callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("/usv_manipulate_object"); 
-    takeoffClient_ = this->create_client<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff");
     
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
@@ -614,46 +615,23 @@ bool UavCtl::change_state(const mbzirc_aerial_manipulation_msgs::srv::ChangeStat
 
 }
 
-bool UavCtl::take_off(const mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request::SharedPtr req, 
-                          mbzirc_aerial_manipulation_msgs::srv::Takeoff::Response::SharedPtr res)
-{
-    // Set takeoff commanded position.
-    auto cmd_pos = std::make_shared<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>();
-    cmd_pos->position.x = currPose_.pose.position.x;
-    cmd_pos->position.y = currPose_.pose.position.y;
-    cmd_pos->position.z = currPose_.pose.position.z + req->relative_height;
-    cmd_pos->heading.data = getCurrentYaw();
-    cmd_pose_callback(cmd_pos);
-    get_pose_dist();
-
-    // Wait until position is reached.
-    while (poseError_.abs_position > 0.15)
-    {
-        // TODO: How to throttle? 
-        rclcpp::sleep_for(std::chrono::milliseconds(100));
-        RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << poseError_.abs_position);
-    };
-
-    // Change state and report back
-    current_state_ = IDLE;
-
-    if(first_takeoff_)
-    {
-        current_state_ = GO_TO_VESSEL;
-    }
-
-    res->success = true;
-
-    return res->success; 
-
-}
-
-
 void UavCtl::takeoff_to_height_callback(const std_msgs::msg::Float64 &msg)
 {   
-    auto req_ = std::make_shared<mbzirc_aerial_manipulation_msgs::srv::Takeoff::Request>(); 
-    req_->relative_height = msg.data;
-    takeoffClient_->async_send_request(req_); 
+    takeoff_relative_height_ = msg.data;
+    if(current_state_ == INIT_STATE)
+        current_state_ = TAKEOFF;
+    else
+        RCLCPP_WARN_STREAM(this->get_logger(), "Can't go to TAKEOFF bcs not in INIT!");
+}   
+
+void UavCtl::baro_callback(const sensor_msgs::msg::FluidPressure &msg)
+{
+    if(started_takeoff_ && !base_pressure_reciv_)
+    {
+        base_pressure_ = msg.fluid_pressure;
+        base_pressure_reciv_ = true;
+    }
+    current_height_from_barro_ = BaroCnv::baro_pressure_to_height((float)msg.fluid_pressure, base_pressure_);
 }   
 
 void UavCtl::get_pose_dist()
@@ -692,6 +670,8 @@ void UavCtl::timer_callback()
     if (nodeInitialized){
 
         if (current_state_ == POSITION)     positionControl(cmdVel_); 
+
+        if (current_state_ == TAKEOFF)      takeoffControl(cmdVel_); 
 
         if (current_state_ == GO_TO_VESSEL || current_state_ == SEARCH) goToVesselControl(cmdVel_); 
 
@@ -953,7 +933,7 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
     //RCLCPP_INFO_STREAM(this->get_logger(), "imuMeasuredRoll_ = " << imuMeasuredRoll_ << "\n");
     cmdVel.linear.x = 0.0; 
     cmdVel.linear.y = 0.0;  
-    cmdVel.linear.z = calcPropCmd(Kp_z, 8.0, currPose_.pose.position.z, 2.0); 
+    cmdVel.linear.z = calcPropCmd(Kp_z, 8.0, current_height_from_barro_, 2.0); 
     cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25);  
 
     if (std::abs(cmdVel.angular.z) < 0.05 && usvPosReciv)
@@ -1123,6 +1103,27 @@ void UavCtl::dropControl(geometry_msgs::msg::Twist& cmdVel)
 
     current_state_ = IDLE; 
 }
+
+
+void UavCtl::takeoffControl(geometry_msgs::msg::Twist& cmdVel)
+{
+    
+    RCLCPP_INFO(this->get_logger(), "[TAKEOFF] Taking off!");
+    started_takeoff_ = true;
+    // set speeds to 0
+    cmdVel.linear.x = 0.0;
+    cmdVel.linear.y = 0.0;
+    cmdVel.linear.z = calcPidCmd(z_controller_, takeoff_relative_height_, current_height_from_barro_); 
+
+    RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << poseError_.abs_position);
+    double height_err = takeoff_relative_height_ - current_height_from_barro_;
+    // Wait until position is reached.
+    if (std::abs(height_err) < 0.15)
+    {
+        current_state_ = GO_TO_VESSEL; 
+    }
+}
+
 
 /*
 bool UavCtl::switchToState(state switch_state)

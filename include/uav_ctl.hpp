@@ -50,6 +50,8 @@
 #include <jlb_pid/pid.hpp>
 #include <jlb_pid/config.hpp>
 
+#include "sensor_msgs/msg/fluid_pressure.hpp"
+
 #define stringify( name ) # name
 
 
@@ -112,6 +114,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
         rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr                             takeoffToHeightSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr                    baroSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    openGripperSrv_; 
@@ -119,10 +122,8 @@ class UavCtl: public rclcpp::Node
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    startSuctionSrv_; 
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr                                    stopSuctionSrv_; 
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>::SharedPtr       changeStateSrv_; 
-        rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr           takeoffSrv_; 
 
         rclcpp::Client<mbzirc_msgs::srv::UsvManipulateObject>::SharedPtr                    callArmClient_; 
-        rclcpp::Client<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr            takeoffClient_; 
         
         // timers
         rclcpp::TimerBase::SharedPtr                                        timer_;
@@ -203,7 +204,13 @@ class UavCtl: public rclcpp::Node
         //start on usv devel
         bool servoing_ready_flag_ = false;
 
-        bool first_takeoff_ = true;
+        bool started_takeoff_ = false;
+
+        bool base_pressure_reciv_ = false;
+        double base_pressure_ = 101313.0;
+        double current_height_from_barro_ = 0.0;
+
+        double takeoff_relative_height_ = 0.0;
 
         // State machine
         enum state 
@@ -220,11 +227,12 @@ class UavCtl: public rclcpp::Node
             DROP = 9,
             INIT_STATE = 10,
             GO_TO_VESSEL = 11,
-            SEARCH = 12
+            SEARCH = 12,
+            TAKEOFF = 13
         };
 
          // depends on num states
-        const char* stateNames[13] = 
+        const char* stateNames[14] = 
         {
             stringify( IDLE ), 
             stringify( JOYSTICK ), 
@@ -238,7 +246,8 @@ class UavCtl: public rclcpp::Node
             stringify( DROP ),
             stringify( INIT_STATE ),
             stringify( GO_TO_VESSEL ),
-            stringify( SEARCH )
+            stringify( SEARCH ),
+            stringify( TAKEOFF ) 
         }; 
 
       
@@ -277,6 +286,7 @@ class UavCtl: public rclcpp::Node
         void right_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void top_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void center_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 
+        void baro_callback(const sensor_msgs::msg::FluidPressure &msg); 
 
         // service callbacks
         bool close_gripper(const std_srvs::srv::Empty::Request::SharedPtr req, 
@@ -315,6 +325,7 @@ class UavCtl: public rclcpp::Node
         void goToDropControl(geometry_msgs::msg::Twist& cmdVel); 
         void goToVesselControl(geometry_msgs::msg::Twist& cmdVel); 
         void dropControl(geometry_msgs::msg::Twist& cmdVel); 
+        void takeoffControl(geometry_msgs::msg::Twist& cmdVel); 
 
 
 
