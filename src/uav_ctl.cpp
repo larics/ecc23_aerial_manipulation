@@ -842,7 +842,7 @@ void UavCtl::servoControl(geometry_msgs::msg::Twist& cmdVel)
     // calc commands
     double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
     double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
-    double cmd_z = calcPropCmd(Kp_xy, 2.0, currPose_.pose.position.z, limit_xy); 
+    double cmd_z = calcPropCmd(Kp_xy, 2.0, current_height_from_barro_, limit_xy); 
     cmdVel.linear.x = cmd_x;
     cmdVel.linear.y = cmd_y; 
     cmdVel.linear.z = cmd_z; 
