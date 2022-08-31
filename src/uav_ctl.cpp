@@ -206,9 +206,9 @@ void UavCtl::init_ctl()
 
     // UAV position control ---> WITH MANIPULATOR FEEDBACK FOR GO_TO_VESSEL
     config.windup_limit = 2.0;
-    config.upper_limit = 1.0; 
-    config.lower_limit = -1.0;  
-    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
+    config.upper_limit = 0.5; 
+    config.lower_limit = -0.5;  
+    pid.kp = 0.2; pid.ki = 0.0; pid.kd = 0.0; 
     setPidController(x_go_to_vessel_controller_, pid, config);
     setPidController(y_go_to_vessel_controller_, pid, config);
     setPidController(z_go_to_vessel_controller_, pid, config);  
@@ -1058,7 +1058,7 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     double time_diff = time_now - ex_usvPoint_stamp_;
     ex_usvPoint_stamp_ = time_now;
 
-    if(!usvPosReciv || time_diff > 0.5)
+    if(time_diff > 0.5)
     {
         cmdVel.linear.x = 0.0;
         cmdVel.linear.y = 0.0; 
