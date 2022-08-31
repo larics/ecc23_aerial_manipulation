@@ -111,7 +111,6 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                topContactSub_; 
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
-        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr                                dockingFinishedSub_; 
         rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr                             takeoffToHeightSub_; 
 
         // services --> spawn services relating to gripper depending on UAV type 

@@ -40,7 +40,7 @@ void UavCtl::init()
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
-    startFollowingPub_     = this->create_publisher<std_msgs::msg::Bool>("/usv/arm/start_following", 1); 
+    startFollowingPub_     = this->create_publisher<std_msgs::msg::Bool>("usv/arm/start_following", 1); 
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -56,7 +56,6 @@ void UavCtl::init()
     rightContactSub_       = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/right", 1, std::bind(&UavCtl::right_contact_callback, this, _1)); 
     topContactSub_         = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/top", 1, std::bind(&UavCtl::top_contact_callback, this, _1)); 
     centerContactSub_      = this->create_subscription<std_msgs::msg::Bool>("gripper/contacts/center", 1, std::bind(&UavCtl::center_contact_callback, this, _1)); 
-    dockingFinishedSub_    = this->create_subscription<std_msgs::msg::Bool>("docking_finished", 1, std::bind(&UavCtl::docking_finished_callback, this, _1)); 
     takeoffToHeightSub_    = this->create_subscription<std_msgs::msg::Float64>("takeoff_to_height", 1, std::bind(&UavCtl::takeoff_to_height_callback, this, _1));
     // Services
     openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
@@ -73,7 +72,7 @@ void UavCtl::init()
     // Object detection
     detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
-    vesselPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>("/drone_detection/vessel_detected_point", 1, std::bind(&UavCtl::det_vessel_callback, this, _1));
+    vesselPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>("arm/drone_detection/vessel_detected_point", 1, std::bind(&UavCtl::det_vessel_callback, this, _1));
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -131,7 +130,7 @@ void UavCtl::init_params()
     // TODO: Check namespaces for semantic segmentation
     this->declare_parameter<std::string>("detected_object_topic", "/seg_rgb_filter/detected_point"); 
     this->get_parameter("detected_object_topic", detected_object_topic); 
-    this->declare_parameter<std::string>("detected_drone_topic", "/drone_detection/detected_point"); 
+    this->declare_parameter<std::string>("detected_drone_topic", "arm/drone_detection/detected_point"); 
     this->get_parameter("detected_drone_topic", detected_drone_topic); 
     this->declare_parameter<bool>("start_on_usv", "/uav1/start_on_usv"); 
     this->get_parameter("start_on_usv", start_on_usv_); 
@@ -471,8 +470,6 @@ void UavCtl::docking_finished_callback(const std_msgs::msg::Bool::SharedPtr /* u
     usvFinishedDocking_ = true; 
     if(current_state_ == IDLE)
     {
-        auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
-        callArmClient_->async_send_request(req_); 
         current_state_ = GO_TO_VESSEL;
     }
 }
@@ -865,14 +862,14 @@ void UavCtl::servoControl(geometry_msgs::msg::Twist& cmdVel)
     // calc commands
     double cmd_x = - calcPropCmd(Kp_xy, 0, detObjPose_.point.x, limit_xy); 
     double cmd_y = - calcPropCmd(Kp_xy, 0, detObjPose_.point.y, limit_xy); 
-    double cmd_z = calcPropCmd(Kp_xy, 1.2, currPose_.pose.position.z, limit_xy); 
+    double cmd_z = calcPropCmd(Kp_xy, 2.0, currPose_.pose.position.z, limit_xy); 
     cmdVel.linear.x = cmd_x;
     cmdVel.linear.y = cmd_y; 
     cmdVel.linear.z = cmd_z; 
 
     // condition
     bool ack_cond = detObjPose_.point.x == 0 && detObjPose_.point.y == 0; 
-    bool dist_cond = std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y) < 0.1 && std::abs(currPose_.pose.position.z - 1.2 )< 0.2; 
+    bool dist_cond = std::abs(detObjPose_.point.x) < 0.1 && std::abs(detObjPose_.point.y) < 0.1;  /* && std::abs(currPose_.pose.position.z - 1.2 )< 0.2; */
     // Commented out because logic is changed
     if (dist_cond && !ack_cond) {
         
@@ -967,8 +964,8 @@ void UavCtl::liftControl(geometry_msgs::msg::Twist& cmdVel)
         
         // Services are not implemented!
         RCLCPP_INFO_ONCE(this->get_logger(), "[LIFT] Called arm tracking!"); 
-        auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
-        callArmClient_->async_send_request(req_); 
+        //auto req_ = std::make_shared<mbzirc_msgs::srv::UsvManipulateObject::Request>();   
+        //callArmClient_->async_send_request(req_); 
        
         cmdVel.linear.z = 0.0; 
         cmdVel.angular.z = 0.0; 
