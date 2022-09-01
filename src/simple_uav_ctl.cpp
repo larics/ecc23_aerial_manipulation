@@ -35,8 +35,6 @@ void SimpleUavCtl::init()
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
 
     // Subscribers
-    poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&SimpleUavCtl::pose_callback, this, _1));
-    currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>("pose_gt", 1, std::bind(&SimpleUavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&SimpleUavCtl::cmd_pose_callback, this, _1)); 
     currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&SimpleUavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&SimpleUavCtl::imu_callback, this, _1)); 
@@ -159,41 +157,9 @@ void SimpleUavCtl::init_ctl()
 }
 
 
-// subscriber callbacks
-void SimpleUavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
-{   
-    if (!use_gt_) {return;}
-
-    // TODO: Fix this part!
-    currPose_.header.frame_id = msg->header.frame_id;
-    currPose_.pose.position.x = msg->pose.position.x;  
-    currPose_.pose.position.y = msg->pose.position.y;
-    currPose_.pose.position.z = msg->pose.position.z;
-    currPose_.pose.orientation.x = msg->pose.orientation.x; 
-    currPose_.pose.orientation.y = msg->pose.orientation.y; 
-    currPose_.pose.orientation.z = msg->pose.orientation.z; 
-    currPose_.pose.orientation.w = msg->pose.orientation.w; 
-
-    tf2::Quaternion q(currPose_.pose.orientation.x, 
-                      currPose_.pose.orientation.y, 
-                      currPose_.pose.orientation.z, 
-                      currPose_.pose.orientation.w); 
-    
-    tf2::Matrix3x3 m(q);
-
-    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
-    double roll, pitch, yaw; 
-    m.getRPY(roll, pitch, yaw);   
-
-    currentYaw_ = yaw; 
-
-    // Output yaw (needed for pose estimation)
-    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
-}
-
 void SimpleUavCtl::curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
 {   
-    if (use_gt_) {return;}
+
     
     // TODO: Fix this part!
     currPose_.header.frame_id = msg->header.frame_id;
@@ -241,59 +207,6 @@ void SimpleUavCtl::cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg:
 
 }
 
-void SimpleUavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg) 
-{       
-
-        geometry_msgs::msg::TransformStamped transform_stamped;
-        bool pose_estimate = false; 
-        bool check_complete = false; 
-        // Get uav ns
-        std::string uav_ns = this->ns_;
-        // Remove backslash 
-        uav_ns.erase(0, 1); 
-
-        for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
-            // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
-            geometry_msgs::msg::TransformStamped transform_msg; 
-            transform_msg = msg->transforms.at(i); 
-
-            // tf's
-            std::string frame_id; std::string child_frame_id;  
-            frame_id        = transform_msg.header.frame_id; 
-            child_frame_id  = transform_msg.child_frame_id; 
-
-            // publish pose_gt for this uav
-            if (frame_id == world_name_ && child_frame_id == uav_ns) 
-            {   
-                pose_estimate = true; 
-                geometry_msgs::msg::PoseStamped msg; 
-
-                // This can also be ground truth pose
-                msg.header = transform_msg.header; 
-                msg.header.frame_id = child_frame_id; 
-                msg.pose.position.x = transform_msg.transform.translation.x; 
-                msg.pose.position.y = transform_msg.transform.translation.y; 
-                msg.pose.position.z = transform_msg.transform.translation.z; 
-                msg.pose.orientation = transform_msg.transform.rotation; 
-
-                poseGtPub_->publish(msg); 
-                
-                // Also broadcast as tf
-                staticPoseTfBroadcaster_->sendTransform(transform_msg);
-
-                break; 
-
-            }; 
-
-            check_complete = true; 
-
-        }
-        // publish warning if there's no pose estimate
-        if(!pose_estimate && check_complete){
-            RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
-        }
-
-}
 
 void SimpleUavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
 {

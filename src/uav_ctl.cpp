@@ -47,7 +47,6 @@ void UavCtl::init()
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
     poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>("/usv/pose_static", 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
-    currPoseSub_           = this->create_subscription<geometry_msgs::msg::PoseStamped>("pose_gt", 1, std::bind(&UavCtl::curr_pose_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
     currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&UavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&UavCtl::imu_callback, this, _1)); 
@@ -71,9 +70,9 @@ void UavCtl::init()
     callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("/usv_manipulate_object"); 
     
     // Object detection
-    detObjSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
+    detObjSub_      = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_object_topic, 1, std::bind(&UavCtl::det_obj_callback, this, _1)); 
     usvDropPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(detected_drone_topic, 1, std::bind(&UavCtl::det_uav_callback, this, _1)); 
-    vesselPoseSub_ = this->create_subscription<geometry_msgs::msg::PointStamped>("arm/drone_detection/vessel_detected_point", 1, std::bind(&UavCtl::det_vessel_callback, this, _1));
+    vesselPoseSub_  = this->create_subscription<geometry_msgs::msg::PointStamped>("arm/drone_detection/vessel_detected_point", 1, std::bind(&UavCtl::det_vessel_callback, this, _1));
 
     // TF
     staticPoseTfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -94,6 +93,7 @@ void UavCtl::init()
     // TODO: Add as reconfigurable param
     std::chrono::duration<double> SYSTEM_DT(0.05);
     timer_ = this->create_wall_timer(SYSTEM_DT, std::bind(&UavCtl::timer_callback, this)); 
+
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node!");
 }
@@ -215,42 +215,8 @@ void UavCtl::init_ctl()
 
 }
 
-// subscriber callbacks
-void UavCtl::curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) 
-{   
-    if (!use_gt_) {return;}
-
-    // TODO: Fix this part!
-    currPose_.header.frame_id = msg->header.frame_id;
-    currPose_.pose.position.x = msg->pose.position.x;  
-    currPose_.pose.position.y = msg->pose.position.y;
-    currPose_.pose.position.z = msg->pose.position.z;
-    currPose_.pose.orientation.x = msg->pose.orientation.x; 
-    currPose_.pose.orientation.y = msg->pose.orientation.y; 
-    currPose_.pose.orientation.z = msg->pose.orientation.z; 
-    currPose_.pose.orientation.w = msg->pose.orientation.w; 
-
-    tf2::Quaternion q(currPose_.pose.orientation.x, 
-                      currPose_.pose.orientation.y, 
-                      currPose_.pose.orientation.z, 
-                      currPose_.pose.orientation.w); 
-    
-    tf2::Matrix3x3 m(q);
-
-    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
-    double roll, pitch, yaw; 
-    m.getRPY(roll, pitch, yaw);   
-
-    currentYaw_ = yaw; 
-
-    // Output yaw (needed for pose estimation)
-    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
-}
-
 void UavCtl::curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
-{   
-    if (use_gt_) {return;}
-    
+{       
     // TODO: Fix this part!
     currPose_.header.frame_id = msg->header.frame_id;
     currPose_.pose.position.x = msg->pose.pose.position.x;  
@@ -1114,6 +1080,7 @@ void UavCtl::takeoffControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.linear.x = 0.0;
     cmdVel.linear.y = 0.0;
     cmdVel.linear.z = calcPidCmd(z_controller_, takeoff_relative_height_, current_height_from_barro_); 
+    cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << poseError_.abs_position);
     double height_err = takeoff_relative_height_ - current_height_from_barro_;
