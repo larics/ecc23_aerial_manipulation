@@ -68,7 +68,7 @@ void SimpleUavCtl::init_params()
     // TODO: Add cfg with init params 
     this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
-    this->declare_parameter<bool>("use_gt", true);
+    this->declare_parameter<bool>("use_gt", false);
     this->get_parameter("use_gt", use_gt_);
 
     if (use_gt_)
@@ -155,7 +155,6 @@ void SimpleUavCtl::init_ctl()
 
     RCLCPP_INFO_STREAM(this->get_logger(), "____________________________________" ); 
 }
-
 
 void SimpleUavCtl::curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) 
 {   
@@ -365,7 +364,7 @@ void SimpleUavCtl::setPidController(jlbpid::Controller& controller, jlbpid::PID 
 // State control 
 void SimpleUavCtl::positionControl(geometry_msgs::msg::Twist& cmdVel)
 {
-    RCLCPP_INFO_ONCE(this->get_logger(), "[SERVOING] Position control!"); 
+    RCLCPP_INFO_ONCE(this->get_logger(), "[POSITION] Control!"); 
         
     // Publish current pose difference
     get_pose_dist(); 

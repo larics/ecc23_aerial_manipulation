@@ -104,7 +104,7 @@ void UavCtl::init_params()
     // TODO: Add cfg with init params 
     this->declare_parameter<std::string>("world_name", "simple_demo");
     this->get_parameter("world_name", world_name_);
-    this->declare_parameter<bool>("use_gt", true);
+    this->declare_parameter<bool>("use_gt", false);
     this->get_parameter("use_gt", use_gt_);
 
     if (use_gt_)
