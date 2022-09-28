@@ -59,6 +59,26 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2; 
 
+class FirstOrderFilter
+{
+public:
+  FirstOrderFilter(double k = 0.0, double initial_value = 0.0)
+  : current_value_(initial_value), k_(k) 
+  {
+    if(abs(k) > 1.0)
+      std::runtime_error("FirstOrderFilter -> illegal k value");
+  }
+
+  double getValue() const { return current_value_; }
+  void update(double current_measurement)
+  {
+    double current_value_ = k_ * current_value_ + (1.0 - k_) * current_measurement;
+  }
+private:
+  double k_;
+  double current_value_;
+};
+
 class UavCtl: public rclcpp::Node
 {
 
@@ -175,9 +195,12 @@ class UavCtl: public rclcpp::Node
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
 
+        // Compensation
         double go_to_drop_vel_x_ = 0.0;
         double go_to_drop_vel_y_ = 0.0;
         double go_to_drop_vel_z_ = 0.0;
+        static constexpr double k_filters_ = 0.01;
+        FirstOrderFilter vel_x_filter_, vel_y_filter_, vel_z_filter_;
 
         double go_to_drop_pos_x_ = 0.0;
         double go_to_drop_pos_y_ = 0.0;
@@ -194,12 +217,25 @@ class UavCtl: public rclcpp::Node
         bool first_time_entering_go_to_drop_ = true;
 
         uint32_t compensation_counter_ = 0;
-        uint32_t compensation_iterations_ = 200;
+        static constexpr uint32_t compensation_iterations_ = 200;
 
-        double compensation_factor_start_xy_ = 0.3;
-        double compensation_factor_end_xy_ = 0.02;
-        double compensation_factor_start_z_ = 0.05;
-        double compensation_factor_end_z_ = 0.02;
+        static constexpr double compensation_factor_start_xy_ = 0.1;
+        static constexpr double compensation_factor_end_xy_ = 0.02;
+        static constexpr double compensation_factor_start_z_ = 0.1;
+        static constexpr double compensation_factor_end_z_ = 0.02;
+
+        double time_between_two_usv_pos = 0.1;
+
+        static constexpr bool publish_compensation_debug_info_ = true;
+        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr    compensation_x_pub_,
+                                                                compensation_y_pub_,
+                                                                compensation_z_pub_,
+                                                                compensation_factor_xy_pub_,
+                                                                compensation_factor_z_pub_,
+                                                                measured_x_vel_pub_,
+                                                                filtered_x_vel_pub_;
+
+
 
         //start on usv devel
         bool servoing_ready_flag_ = false;
@@ -207,6 +243,7 @@ class UavCtl: public rclcpp::Node
         bool started_takeoff_ = false;
 
         bool base_pressure_reciv_ = false;
+
         double base_pressure_ = 101313.0;
         double current_height_from_barro_ = 0.0;
 

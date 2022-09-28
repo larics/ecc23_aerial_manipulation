@@ -5,7 +5,10 @@
 
 using namespace std::chrono_literals;
 // How to call this method with a param? 
-UavCtl::UavCtl(): Node("uav_ctl")
+UavCtl::UavCtl(): Node("uav_ctl"), 
+  vel_x_filter_(FirstOrderFilter(k_filters_)),
+  vel_y_filter_(FirstOrderFilter(k_filters_)),
+  vel_z_filter_(FirstOrderFilter(k_filters_))
 {
  
     // Initalize 
@@ -43,6 +46,15 @@ void UavCtl::init()
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
     startFollowingPub_     = this->create_publisher<std_msgs::msg::Bool>("usv/arm/start_following", 1); 
+    // compensation related
+    
+    compensation_x_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_x", 1);
+    compensation_y_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_y", 1);
+    compensation_z_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_z", 1); 
+    compensation_factor_xy_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_factor_xy", 1);
+    compensation_factor_z_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_factor_z", 1); 
+    measured_x_vel_pub_ = this->create_publisher<std_msgs::msg::Float64>("measured_x_vel_dropoff", 1);
+    filtered_x_vel_pub_ = this->create_publisher<std_msgs::msg::Float64>("filtered_x_vel_dropoff", 1);
 
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
@@ -274,7 +286,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         // Remove backslash 
         uav_ns.erase(0, 1); 
 
-        for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
+        for (uint32_t i = 0; i < msg->transforms.size(); ++i) {
             // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
             geometry_msgs::msg::TransformStamped transform_msg; 
             transform_msg = msg->transforms.at(i); 
@@ -311,9 +323,11 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
         }
         // publish warning if there's no pose estimate
+        /*
         if(!pose_estimate && check_complete){
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for %s.",  uav_ns.c_str()); 
         }
+        */
 
 }
 
@@ -338,7 +352,7 @@ void UavCtl::pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         bool pose_estimate = false; 
         bool check_complete = false; 
 
-        for (int i = 0; i < static_cast<int>(std::size(msg->transforms)); ++i) {
+        for (uint32_t i = 0; i < msg->transforms.size(); ++i) {
             // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
             geometry_msgs::msg::TransformStamped transform_msg; 
             transform_msg = msg->transforms.at(i); 
@@ -373,9 +387,11 @@ void UavCtl::pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
         }
         // publish warning if there's no pose estimate
+        /*
         if(!pose_estimate && check_complete){
             RCLCPP_WARN(this->get_logger(), "No pose estimate found for usv"); 
         }
+        */
 
 }
 
@@ -406,13 +422,14 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
     if(current_state_ == DROP || current_state_ == LIFT || current_state_ == GO_TO_DROP)
     {
         usvPosReciv = true;
+        
+        auto time_now = this->get_clock()->now().seconds();
+        time_between_two_usv_pos = time_now - ex_usvPoint_stamp_;
 
-        ex_usvPoint_stamp_ = this->get_clock()->now().seconds();
+        ex_usvPoint_stamp_ = time_now;
 
         dropOffPoint_.header = msg->header;  
-        dropOffPoint_.point.x = msg->point.x;
-        dropOffPoint_.point.y = msg->point.y; 
-        dropOffPoint_.point.z = msg->point.z; 
+        dropOffPoint_.point = msg->point; 
     }
 }
 
@@ -927,9 +944,7 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     double control_loop_dt = time_now - ex_controlLoop_stamp_;
     ex_controlLoop_stamp_ = time_now;
 
-    double time_since_last_msg = time_now - ex_usvPoint_stamp_;
-
-    if(!usvPosReciv && time_since_last_msg > 0.5)
+    if(!usvPosReciv && time_between_two_usv_pos > 0.5)
     {
         cmdVel.linear.x = 0.0 + go_to_drop_compensate_x_;
         cmdVel.linear.y = 0.0 + go_to_drop_compensate_y_; 
@@ -947,6 +962,10 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         return;
     }
 
+    if(!usvPosReciv)
+    {
+      return;
+    }
     double z_ref = 6.5;
     if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
         z_ref = 3.5;
@@ -957,9 +976,21 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     
     if(compensation_counter_ < compensation_iterations_) compensation_counter_++;
     
-    go_to_drop_vel_x_ = -(dropOffPoint_.point.x - go_to_drop_pos_x_) / control_loop_dt;
-    go_to_drop_vel_y_ = -(dropOffPoint_.point.y - go_to_drop_pos_y_) / control_loop_dt;
-    go_to_drop_vel_z_ = -(dropOffPoint_.point.z - go_to_drop_pos_z_) / control_loop_dt;
+
+    go_to_drop_vel_x_ = -(dropOffPoint_.point.x - go_to_drop_pos_x_) / time_between_two_usv_pos;
+    go_to_drop_vel_y_ = -(dropOffPoint_.point.y - go_to_drop_pos_y_) / time_between_two_usv_pos;
+    go_to_drop_vel_z_ = -(dropOffPoint_.point.z - go_to_drop_pos_z_) / time_between_two_usv_pos;
+    
+    vel_x_filter_.update(go_to_drop_vel_x_);
+    vel_y_filter_.update(go_to_drop_vel_y_);
+    vel_z_filter_.update(go_to_drop_vel_z_);
+    
+    RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
+    RCLCPP_INFO_STREAM(this->get_logger(), "time_between_two_usv_pos  = " << time_between_two_usv_pos);
+    RCLCPP_INFO_STREAM(this->get_logger(), "points = " << dropOffPoint_.point.x << ", " <<  go_to_drop_pos_x_);
+    //RCLCPP_INFO_STREAM(this->get_logger(), "cmd_x_desired  = " << cmd_x_desired);
+    RCLCPP_INFO_STREAM(this->get_logger(), "go_to_drop_vel_x_  = " << go_to_drop_vel_x_);
+    RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
     
     go_to_drop_pos_x_ = dropOffPoint_.point.x;
     go_to_drop_pos_y_ = dropOffPoint_.point.y;
@@ -977,9 +1008,28 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.linear.x = cmd_x_desired + go_to_drop_compensate_x_;
     cmdVel.linear.y = cmd_y_desired + go_to_drop_compensate_y_;
     cmdVel.linear.z = cmd_z_desired + go_to_drop_compensate_z_; 
-    
+
     double Kp_yaw = 1.0;
     cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
+
+    if(publish_compensation_debug_info_)
+    {
+        auto temp_float_msg = std_msgs::msg::Float64(); 
+        temp_float_msg.data = go_to_drop_compensate_x_; 
+        compensation_x_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = go_to_drop_compensate_y_; 
+        compensation_y_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = go_to_drop_compensate_z_; 
+        compensation_z_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = compensation_factor_xy; 
+        compensation_factor_xy_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = compensation_factor_z; 
+        compensation_factor_z_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = go_to_drop_vel_x_; 
+        measured_x_vel_pub_->publish(temp_float_msg); 
+        temp_float_msg.data = vel_x_filter_.getValue(); 
+        filtered_x_vel_pub_->publish(temp_float_msg); 
+    }
     
     /*
     RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
@@ -1082,8 +1132,8 @@ void UavCtl::takeoffControl(geometry_msgs::msg::Twist& cmdVel)
     cmdVel.linear.z = calcPidCmd(z_controller_, takeoff_relative_height_, current_height_from_barro_); 
     cmdVel.angular.z = calcPropCmd(Kp_yaw, 0.0, imuMeasuredYaw_, 0.25); 
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << poseError_.abs_position);
     double height_err = takeoff_relative_height_ - current_height_from_barro_;
+    RCLCPP_INFO_STREAM(this->get_logger(), "Waiting to reach takeoff setpoint! Error = " << height_err);
     // Wait until position is reached.
     if (std::abs(height_err) < 0.15)
     {
