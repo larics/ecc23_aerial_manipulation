@@ -62,21 +62,29 @@ using std::placeholders::_2;
 class FirstOrderFilter
 {
 public:
-  FirstOrderFilter(double k = 0.0, double initial_value = 0.0)
-  : current_value_(initial_value), k_(k) 
+  FirstOrderFilter(double abs_measurement_limit, double k = 0.0, double initial_value = 0.0)
+  : current_value_(initial_value), k_(k), abs_meas_limit_(abs_measurement_limit) 
   {
     if(abs(k) > 1.0)
       std::runtime_error("FirstOrderFilter -> illegal k value");
   }
 
   double getValue() const { return current_value_; }
-  void update(double current_measurement)
+  void update(const double current_measurement)
   {
-    double current_value_ = k_ * current_value_ + (1.0 - k_) * current_measurement;
+    double limited_meas = current_measurement;
+
+    if( current_measurement > abs_meas_limit_ )
+      limited_meas = abs_meas_limit_;
+    if( current_measurement < -abs_meas_limit_ )
+      limited_meas = -abs_meas_limit_;
+    
+    current_value_ = k_ * current_value_ + (1.0 - k_) * limited_meas;
   }
 private:
   double k_;
   double current_value_;
+  double abs_meas_limit_;
 };
 
 class UavCtl: public rclcpp::Node
@@ -199,7 +207,9 @@ class UavCtl: public rclcpp::Node
         double go_to_drop_vel_x_ = 0.0;
         double go_to_drop_vel_y_ = 0.0;
         double go_to_drop_vel_z_ = 0.0;
-        static constexpr double k_filters_ = 0.01;
+        static constexpr double k_filters_ = 0.9;
+        static constexpr double abs_vel_limit_filters_ = 1.5;
+
         FirstOrderFilter vel_x_filter_, vel_y_filter_, vel_z_filter_;
 
         double go_to_drop_pos_x_ = 0.0;
@@ -220,9 +230,9 @@ class UavCtl: public rclcpp::Node
         static constexpr uint32_t compensation_iterations_ = 200;
 
         static constexpr double compensation_factor_start_xy_ = 0.1;
-        static constexpr double compensation_factor_end_xy_ = 0.02;
+        static constexpr double compensation_factor_end_xy_ = 0.01;
         static constexpr double compensation_factor_start_z_ = 0.1;
-        static constexpr double compensation_factor_end_z_ = 0.02;
+        static constexpr double compensation_factor_end_z_ = 0.01;
 
         double time_between_two_usv_pos = 0.1;
 

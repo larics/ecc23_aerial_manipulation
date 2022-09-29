@@ -6,9 +6,9 @@
 using namespace std::chrono_literals;
 // How to call this method with a param? 
 UavCtl::UavCtl(): Node("uav_ctl"), 
-  vel_x_filter_(FirstOrderFilter(k_filters_)),
-  vel_y_filter_(FirstOrderFilter(k_filters_)),
-  vel_z_filter_(FirstOrderFilter(k_filters_))
+  vel_x_filter_(FirstOrderFilter(2.0, k_filters_)),
+  vel_y_filter_(FirstOrderFilter(2.0, k_filters_)),
+  vel_z_filter_(FirstOrderFilter(2.0, k_filters_))
 {
  
     // Initalize 
@@ -962,7 +962,7 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         return;
     }
 
-    if(!usvPosReciv)
+    if(!usvPosReciv || time_between_two_usv_pos < (0.09))
     {
       return;
     }
@@ -985,13 +985,15 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     vel_y_filter_.update(go_to_drop_vel_y_);
     vel_z_filter_.update(go_to_drop_vel_z_);
     
-    RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
-    RCLCPP_INFO_STREAM(this->get_logger(), "time_between_two_usv_pos  = " << time_between_two_usv_pos);
-    RCLCPP_INFO_STREAM(this->get_logger(), "points = " << dropOffPoint_.point.x << ", " <<  go_to_drop_pos_x_);
-    //RCLCPP_INFO_STREAM(this->get_logger(), "cmd_x_desired  = " << cmd_x_desired);
-    RCLCPP_INFO_STREAM(this->get_logger(), "go_to_drop_vel_x_  = " << go_to_drop_vel_x_);
-    RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
-    
+    if(abs(go_to_drop_vel_x_) > 2.0)
+    {
+      RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
+      RCLCPP_INFO_STREAM(this->get_logger(), "time_between_two_usv_pos  = " << time_between_two_usv_pos);
+      RCLCPP_INFO_STREAM(this->get_logger(), "points = " << dropOffPoint_.point.x << ", " <<  go_to_drop_pos_x_);
+      //RCLCPP_INFO_STREAM(this->get_logger(), "cmd_x_desired  = " << cmd_x_desired);
+      RCLCPP_INFO_STREAM(this->get_logger(), "go_to_drop_vel_x_  = " << go_to_drop_vel_x_);
+      RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
+    }
     go_to_drop_pos_x_ = dropOffPoint_.point.x;
     go_to_drop_pos_y_ = dropOffPoint_.point.y;
     go_to_drop_pos_z_ = dropOffPoint_.point.z;
@@ -1000,9 +1002,9 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
     double compensation_factor_z = compensation_factor_start_z_ - (float)compensation_counter_ / (float)compensation_iterations_ * (compensation_factor_start_z_ - compensation_factor_end_z_);
     //RCLCPP_INFO_STREAM(this->get_logger(), "compensation factor = " << compensation_factor_xy);
     
-    go_to_drop_compensate_x_ += (cmd_x_desired - go_to_drop_vel_x_) * compensation_factor_xy;
-    go_to_drop_compensate_y_ += (cmd_y_desired - go_to_drop_vel_y_) * compensation_factor_xy;
-    go_to_drop_compensate_z_ += (cmd_z_desired - go_to_drop_vel_z_) * compensation_factor_z;
+    go_to_drop_compensate_x_ += (cmd_x_desired - vel_x_filter_.getValue()) * compensation_factor_xy;
+    go_to_drop_compensate_y_ += (cmd_y_desired - vel_y_filter_.getValue()) * compensation_factor_xy;
+    go_to_drop_compensate_z_ += (cmd_z_desired - vel_z_filter_.getValue()) * compensation_factor_z;
     
     //Set velocities
     cmdVel.linear.x = cmd_x_desired + go_to_drop_compensate_x_;
