@@ -962,10 +962,11 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         return;
     }
 
-    if(!usvPosReciv || time_between_two_usv_pos < (0.09))
+    if(!usvPosReciv || time_between_two_usv_pos < (0.04))
     {
       return;
     }
+
     double z_ref = 6.5;
     if(std::abs(dropOffPoint_.point.x) < 1 && std::abs(dropOffPoint_.point.y < 1))
         z_ref = 3.5;
@@ -1089,7 +1090,7 @@ void UavCtl::goToVesselControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_STREAM(this->get_logger(), "pos_err_sum  = " << pos_err_sum );
     if(pos_err_sum < 0.8)
     {
-        current_state_ = SEARCH;
+        current_state_ = SERVOING;
 
         std_msgs::msg::Bool msg; 
         msg.data = false; 
