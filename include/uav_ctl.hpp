@@ -24,6 +24,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
@@ -123,6 +124,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               fullSuctionContactPub_;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startFollowingPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       velGtPub_; 
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
@@ -183,13 +185,21 @@ class UavCtl: public rclcpp::Node
         bool                                                                cmdReciv = false; 
         bool                                                                usvPosReciv = false; 
         bool                                                                usvFinishedDocking_ = false; 
+        bool                                                                firstPoseGtReciv_ = false; 
+        bool                                                                firstImuMsgReciv_ = false; 
         bool                                                                bottomC, topC, leftC, rightC, centerC; 
-        int                                                                 contactCounter_=0; 
+        int                                                                 contactCounter_ = 0; 
         float                                                               roll, pitch;
         float                                                               currentYaw_, cmdYaw_;
         float                                                               magHeadingRad_, magHeadingDeg_; 
+        float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_;
+        double                                                              lacc_x_now, lacc_y_now, lacc_z_now; 
+        double                                                              lacc_x_last, lacc_y_last, lacc_z_last;  
+        double                                                              pos_x_now; pos_y_now; pos_z_now; 
+        double                                                              pos_x_last; pos_y_last; pos_z_last; 
+        double                                                              tNow, tLast; 
+        double                                                              pos_tNow; pos_tLast; 
 
-        float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_; 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
@@ -202,6 +212,7 @@ class UavCtl: public rclcpp::Node
 
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
+        double                                                              vel_meas_x=0, vel_meas_y=0, vel_meas_z=0; 
 
         // Compensation
         double go_to_drop_vel_x_ = 0.0;
@@ -236,6 +247,7 @@ class UavCtl: public rclcpp::Node
 
         double time_between_two_usv_pos = 0.1;
 
+
         static constexpr bool publish_compensation_debug_info_ = true;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr    compensation_x_pub_,
                                                                 compensation_y_pub_,
@@ -249,10 +261,9 @@ class UavCtl: public rclcpp::Node
 
         //start on usv devel
         bool servoing_ready_flag_ = false;
-
         bool started_takeoff_ = false;
-
         bool base_pressure_reciv_ = false;
+
 
         double base_pressure_ = 101313.0;
         double current_height_from_barro_ = 0.0;
@@ -361,6 +372,7 @@ class UavCtl: public rclcpp::Node
         static void limitCommand(double& cmd, double limit);                    
         double calcPropCmd(double gainP, double cmd_sp, double cmd_mv, double limit_command); 
         double calcPidCmd(jlbpid::Controller& controller, double cmd_sp, double cmd_mv); 
+        double getTime(); 
         void setPidController(jlbpid::Controller& controller, jlbpid::PID pid, jlbpid::Config config); 
         // state related 
         void graspControl(); 
@@ -373,16 +385,6 @@ class UavCtl: public rclcpp::Node
         void goToVesselControl(geometry_msgs::msg::Twist& cmdVel); 
         void dropControl(geometry_msgs::msg::Twist& cmdVel); 
         void takeoffControl(geometry_msgs::msg::Twist& cmdVel); 
-
-
-
-
-
-
-
-       
-
-
         
 
 };

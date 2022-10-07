@@ -38,6 +38,7 @@ void UavCtl::init()
     // Publishers 
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose_gt", 1); 
+    velGtPub_              = this->create_publisher<geometry_msgs::msg::Vector3>("vel_gt", 1); 
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_left/cmd_pos", 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_right/cmd_pos", 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("gripper/suction_on", 1); 
@@ -331,6 +332,36 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 }
 
+void UavCtl::pose_gt_callback(const geometry_msgs::PoseStamped::SharedPtr msg){
+
+    if (!firstPoseGtReciv){
+        pos_tNow = getTime(); 
+        pos_x_now = msg.pose.position.x; 
+        pos_y_now = msg.pose.position.y; 
+        pos_z_now = msg.pose.position.z; 
+        firstPoseGtReciv = true; 
+
+    }else {
+        pos_x_last = pose_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
+        pos_tLast = postNow; 
+        pos_tNow = getTime(); 
+        pos_x_now = msg.pose.position.x; 
+        pos_y_now = msg.pose.position.y; 
+        pos_z_now = msg.pose.position.z; 
+        double dT = pos_tNow - pos_tLast;
+        vel_x = (pos_x_now - pos_x_last) * dT; 
+        vel_y = (pos_y_now - pos_y_last) * dT; 
+        vel_z = (pos_z_now - pos_z_last) * dT; 
+
+        
+    }
+
+    geometry_msgs::msg::Vector3 msg; 
+    msg.x = vel_x; msg.y = vel_y; msg.z = vel_z; 
+
+
+}
+
 void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
 {
     // https://answers.ros.org/question/385299/imu-with-magnetometer-read-absolute-position/
@@ -428,6 +459,7 @@ void UavCtl::det_uav_callback(const geometry_msgs::msg::PointStamped::SharedPtr 
 
         ex_usvPoint_stamp_ = time_now;
 
+        // point in space in relation to UAV where we have to leave the pkg
         dropOffPoint_.header = msg->header;  
         dropOffPoint_.point = msg->point; 
     }
@@ -510,6 +542,37 @@ void UavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
     imuMeasuredPitch_ = pitch; 
     imuMeasuredRoll_ = roll; 
     imuMeasuredYaw_ = yaw; 
+
+    double g = 9.81; 
+    // create and publish odometry message to compare wanted cmd vel with measured cmd vel 
+    if (!firstImuMsgReciv_) {
+        // time now 
+        tNow = getTime(); 
+        lacc_x_now = currImuData_.linear_acceleration.x; 
+        lacc_y_now = currImuData_.linear_acceleration.y; 
+        lacc_z_now = currImuData_.linear_acceleration.z - g; 
+        // set init velocities
+        vel_meas_x=0, vel_meas_y=0, vel_meas_z=0; 
+        firstImuMsgReciv_ = true; 
+
+    }else {
+        tLast = getTime(); 
+        lacc_x_last = lacc_x_now; lacc_y_last = lacc_y_now; lacc_z_last = lacc_z_now; 
+        lacc_x_now = currImuData_.linear_acceleration.x;
+        lacc_y_now = currImuData_.linear_acceleration.y; 
+        lacc_z_now = currImuData_.linear_acceleration.z - g; 
+
+        double dT = tLast - tNow; 
+        vel_meas_x += (lacc_x_now - lacc_x_last) * dT;
+        vel_meas_y += (lacc_y_now - lacc_y_last) * dT;
+        vel_meas_z += (lacc_z_now - lacc_z_last) * dT;
+
+        // Noisy --> maybe add kalman implementation
+        // https://dsp.stackexchange.com/questions/8860/kalman-filter-for-position-and-velocity-introducing-speed-estimates
+        // https://github.com/hmartiro/kalman-cpp/blob/master/kalman.cpp
+        // http://www.cs.unc.edu/~welch/media/pdf/kalman_intro.pdf 
+    }
+    
 }  
 
 // service callbacks
@@ -962,7 +1025,9 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         return;
     }
 
-    if(!usvPosReciv || time_between_two_usv_pos < (0.04))
+
+    // Don't calculate compensation if time between error and stuff isn't long enough :) 
+    if(!usvPosReciv || time_between_two_usv_pos < (0.045))
     {
       return;
     }
@@ -1142,6 +1207,11 @@ void UavCtl::takeoffControl(geometry_msgs::msg::Twist& cmdVel)
     {
         current_state_ = GO_TO_VESSEL; 
     }
+}
+
+double UavCtl::getTime()
+{
+    return this->get_clock()->now().seconds(); 
 }
 
 
