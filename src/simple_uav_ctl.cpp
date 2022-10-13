@@ -1,5 +1,7 @@
 #include "simple_uav_ctl.hpp"
 
+#include "baro_convert.hpp"
+
 
 // How to call this method with a param? 
 SimpleUavCtl::SimpleUavCtl(): Node("simple_uav_ctl")
@@ -33,12 +35,16 @@ void SimpleUavCtl::init()
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose_gt", 1); 
     absPoseDistPub_        = this->create_publisher<mbzirc_aerial_manipulation_msgs::msg::PoseError>("pose_dist", 1); 
+    // heightPub_             = this->create_publisher<nav_msgs::msg::Odometry>("")
 
     // Subscribers
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&SimpleUavCtl::cmd_pose_callback, this, _1)); 
     currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&SimpleUavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&SimpleUavCtl::imu_callback, this, _1)); 
-    
+    // currLocSub_            = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("location", 1, std::bind(&SimpleUavCtl::curr_location_callback, this, _1));
+    baroSub_               = this->create_subscription<sensor_msgs::msg::FluidPressure>("air_pressure", 1, std::bind(&SimpleUavCtl::baro_callback, this, _1));
+
+
     // Services
     takeoffSrv_            = this->create_service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>("takeoff", std::bind(&SimpleUavCtl::take_off, this, _1, _2), rmw_qos_profile_services_default, takeoff_group_);
     
@@ -187,6 +193,20 @@ void SimpleUavCtl::curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr m
     // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
 }
 
+void SimpleUavCtl::curr_location_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) 
+{   
+    if (use_gt_) {return;}
+    
+    // TODO: Fix this part!
+    currPose_.header.frame_id = msg->header.frame_id;
+    currPose_.pose.position.x = msg->pose.pose.position.x;  
+    currPose_.pose.position.y = msg->pose.pose.position.y;
+
+
+    // Output yaw (needed for pose estimation)
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+}
+
 void SimpleUavCtl::cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg) 
 {   
     RCLCPP_INFO_STREAM(this->get_logger(), "Recieved cmd_pose!"); 
@@ -221,6 +241,15 @@ void SimpleUavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::
     }
 }
 
+void SimpleUavCtl::baro_callback(const sensor_msgs::msg::FluidPressure &msg)
+{
+    if(!base_pressure_reciv_)
+    {
+        base_pressure_ = msg.fluid_pressure;
+        base_pressure_reciv_ = true;
+    }
+    current_height_from_barro_ = BaroCnv::baro_pressure_to_height((float)msg.fluid_pressure, base_pressure_);
+}
 
 void SimpleUavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
@@ -241,7 +270,7 @@ void SimpleUavCtl::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg)
 
     imuMeasuredPitch_ = pitch; 
     imuMeasuredRoll_ = roll; 
-    imuMeasuredYaw_ = yaw; 
+    currentYaw_ = yaw; 
 }  
 
 // service callbacks

@@ -83,8 +83,8 @@ public:
     current_value_ = k_ * current_value_ + (1.0 - k_) * limited_meas;
   }
 private:
-  double k_;
   double current_value_;
+  double k_;
   double abs_meas_limit_;
 };
 
@@ -195,10 +195,10 @@ class UavCtl: public rclcpp::Node
         float                                                               imuMeasuredPitch_, imuMeasuredRoll_, imuMeasuredYaw_;
         double                                                              lacc_x_now, lacc_y_now, lacc_z_now; 
         double                                                              lacc_x_last, lacc_y_last, lacc_z_last;  
-        double                                                              pos_x_now; pos_y_now; pos_z_now; 
-        double                                                              pos_x_last; pos_y_last; pos_z_last; 
+        double                                                              pos_x_now, pos_y_now, pos_z_now; 
+        double                                                              pos_x_last, pos_y_last, pos_z_last; 
         double                                                              tNow, tLast; 
-        double                                                              pos_tNow; pos_tLast; 
+        double                                                              pos_tNow, pos_tLast; 
 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
@@ -326,6 +326,7 @@ class UavCtl: public rclcpp::Node
 
         // sub callbacks
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
+        void pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void pose_callback_usv(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg); 

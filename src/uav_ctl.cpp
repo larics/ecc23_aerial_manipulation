@@ -332,34 +332,32 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 }
 
-void UavCtl::pose_gt_callback(const geometry_msgs::PoseStamped::SharedPtr msg){
-
-    if (!firstPoseGtReciv){
+void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg){
+    double vel_x = 0;
+    double vel_y = 0;
+    double vel_z = 0;
+    if (!firstPoseGtReciv_){
         pos_tNow = getTime(); 
-        pos_x_now = msg.pose.position.x; 
-        pos_y_now = msg.pose.position.y; 
-        pos_z_now = msg.pose.position.z; 
-        firstPoseGtReciv = true; 
-
+        pos_x_now = msg->pose.position.x; 
+        pos_y_now = msg->pose.position.y; 
+        pos_z_now = msg->pose.position.z; 
+        firstPoseGtReciv_ = true; 
     }else {
-        pos_x_last = pose_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
-        pos_tLast = postNow; 
+        pos_x_last = pos_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
+        pos_tLast = pos_tNow; 
         pos_tNow = getTime(); 
-        pos_x_now = msg.pose.position.x; 
-        pos_y_now = msg.pose.position.y; 
-        pos_z_now = msg.pose.position.z; 
+        pos_x_now = msg->pose.position.x; 
+        pos_y_now = msg->pose.position.y; 
+        pos_z_now = msg->pose.position.z; 
         double dT = pos_tNow - pos_tLast;
         vel_x = (pos_x_now - pos_x_last) * dT; 
         vel_y = (pos_y_now - pos_y_last) * dT; 
         vel_z = (pos_z_now - pos_z_last) * dT; 
-
-        
     }
 
-    geometry_msgs::msg::Vector3 msg; 
-    msg.x = vel_x; msg.y = vel_y; msg.z = vel_z; 
-
-
+    geometry_msgs::msg::Vector3 temp_msg; 
+    temp_msg.x = vel_x; temp_msg.y = vel_y; temp_msg.z = vel_z; 
+    velGtPub_->publish(temp_msg);
 }
 
 void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)

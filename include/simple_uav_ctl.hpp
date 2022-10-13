@@ -24,6 +24,7 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "sensor_msgs/msg/magnetic_field.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -32,6 +33,7 @@
 #include "tf2_msgs/msg/tf_message.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 //#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "sensor_msgs/msg/fluid_pressure.hpp"
 
 //* custom msgs
 #include "mbzirc_aerial_manipulation_msgs/msg/pose_euler.hpp"
@@ -86,9 +88,12 @@ class SimpleUavCtl: public rclcpp::Node
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                            currOdomSub_;
+        rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr      currLocSub_;
         rclcpp::Subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>::SharedPtr    cmdPoseSub_; 
         rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr                              imuSub_; 
         rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr                    magneticFieldSub_; 
+        rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr                    baroSub_; 
+
 
         // services --> spawn services relating to gripper depending on UAV type 
         rclcpp::Service<mbzirc_aerial_manipulation_msgs::srv::Takeoff>::SharedPtr           takeoffSrv_; 
@@ -130,6 +135,10 @@ class SimpleUavCtl: public rclcpp::Node
 
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
+    
+        bool                                                                base_pressure_reciv_ = false;
+        double                                                              base_pressure_ = 101313.0;
+        double                                                              current_height_from_barro_ = 0.0;
 
         // State machine
         enum state 
@@ -183,8 +192,10 @@ class SimpleUavCtl: public rclcpp::Node
         void pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg); 
         void curr_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg); 
         void curr_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg); 
+        void curr_location_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg); 
         void cmd_pose_callback(const mbzirc_aerial_manipulation_msgs::msg::PoseEuler::SharedPtr msg);      
         void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);  
+        void baro_callback(const sensor_msgs::msg::FluidPressure &msg);  
         void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
 
         // service callbacks
