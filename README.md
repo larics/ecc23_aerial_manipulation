@@ -136,6 +136,10 @@ To enable `/dev/input/eventX` run:
 sudo chmod a+rw /dev/input/event*
 ```
 
+### How to plot `vel_gt` with `cmd_vel`? 
+
+Publish calculated `vel_gt` only when publishing `cmd_vel` in `timer_callback`.
+
 
 ### TODO: 
 
