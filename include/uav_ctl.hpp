@@ -18,6 +18,7 @@
 
 //* msgs
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/int16.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -125,12 +126,14 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startFollowingPub_; 
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       velGtPub_; 
+        rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr                              stateDebugPub_; 
 
         // subscribers
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr                              joySub_;  
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSub_; 
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSubUsv_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
+        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    poseGtSub_; 
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                            currOdomSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
@@ -201,6 +204,7 @@ class UavCtl: public rclcpp::Node
         double                                                              pos_tNow, pos_tLast; 
 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
+        geometry_msgs::msg::Vector3                                         velGtMsg_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
         geometry_msgs::msg::PointStamped                                    dropOffPoint_; 

@@ -39,6 +39,7 @@ void UavCtl::init()
     cmdVelPub_             = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1); 
     poseGtPub_             = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose_gt", 1); 
     velGtPub_              = this->create_publisher<geometry_msgs::msg::Vector3>("vel_gt", 1); 
+    stateDebugPub_      = this->create_publisher<std_msgs::msg::Int16>("state_debug", 1); 
     gripperCmdPosLeftPub_  = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_left/cmd_pos", 1); 
     gripperCmdPosRightPub_ = this->create_publisher<std_msgs::msg::Float64>("gripper/joint/finger_right/cmd_pos", 1); 
     gripperCmdSuctionPub_  = this->create_publisher<std_msgs::msg::Bool>("gripper/suction_on", 1); 
@@ -47,8 +48,8 @@ void UavCtl::init()
     // suction_related
     fullSuctionContactPub_ = this->create_publisher<std_msgs::msg::Bool>("gripper/contacts/all", 1); 
     startFollowingPub_     = this->create_publisher<std_msgs::msg::Bool>("usv/arm/start_following", 1); 
-    // compensation related
     
+    // compensation related
     compensation_x_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_x", 1);
     compensation_y_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_y", 1);
     compensation_z_pub_ = this->create_publisher<std_msgs::msg::Float64>("compensation_z", 1); 
@@ -60,6 +61,7 @@ void UavCtl::init()
     // Subscribers
     poseSub_               = this->create_subscription<tf2_msgs::msg::TFMessage>("pose_static", 1, std::bind(&UavCtl::pose_callback, this, _1));
     poseSubUsv_            = this->create_subscription<tf2_msgs::msg::TFMessage>("/usv/pose_static", 1, std::bind(&UavCtl::pose_callback_usv, this, _1));
+    poseGtSub_             = this->create_subscription<geometry_msgs::msg::PoseStamped>("pose_gt", 1, std::bind(&UavCtl::pose_gt_callback, this, _1)); 
     cmdPoseSub_            = this->create_subscription<mbzirc_aerial_manipulation_msgs::msg::PoseEuler>("pose_ref", 1, std::bind(&UavCtl::cmd_pose_callback, this, _1)); 
     currOdomSub_           = this->create_subscription<nav_msgs::msg::Odometry>("odometry", 1, std::bind(&UavCtl::curr_odom_callback, this, _1)); 
     imuSub_ 		       = this->create_subscription<sensor_msgs::msg::Imu>("imu/data", 1, std::bind(&UavCtl::imu_callback, this, _1)); 
@@ -73,11 +75,11 @@ void UavCtl::init()
     takeoffToHeightSub_    = this->create_subscription<std_msgs::msg::Float64>("takeoff_to_height", 1, std::bind(&UavCtl::takeoff_to_height_callback, this, _1));
     baroSub_               = this->create_subscription<sensor_msgs::msg::FluidPressure>("air_pressure", 1, std::bind(&UavCtl::baro_callback, this, _1));
     // Services
-    openGripperSrv_           = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
-    closeGripperSrv_          = this->create_service<std_srvs::srv::Empty>("close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
-    startSuctionSrv_          = this->create_service<std_srvs::srv::Empty>("start_suction", std::bind(&UavCtl::start_suction, this, _1, _2)); 
-    stopSuctionSrv_           = this->create_service<std_srvs::srv::Empty>("stop_suction", std::bind(&UavCtl::stop_suction, this, _1, _2)); 
-    changeStateSrv_           = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>("change_state", std::bind(&UavCtl::change_state, this, _1, _2)); 
+    openGripperSrv_        = this->create_service<std_srvs::srv::Empty>("open_gripper", std::bind(&UavCtl::open_gripper, this, _1, _2)); 
+    closeGripperSrv_       = this->create_service<std_srvs::srv::Empty>("close_gripper",  std::bind(&UavCtl::close_gripper, this, _1, _2)); 
+    startSuctionSrv_       = this->create_service<std_srvs::srv::Empty>("start_suction", std::bind(&UavCtl::start_suction, this, _1, _2)); 
+    stopSuctionSrv_        = this->create_service<std_srvs::srv::Empty>("stop_suction", std::bind(&UavCtl::stop_suction, this, _1, _2)); 
+    changeStateSrv_        = this->create_service<mbzirc_aerial_manipulation_msgs::srv::ChangeState>("change_state", std::bind(&UavCtl::change_state, this, _1, _2)); 
 
     // Clients
     callArmClient_ = this->create_client<mbzirc_msgs::srv::UsvManipulateObject>("/usv_manipulate_object"); 
@@ -287,6 +289,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
         // Remove backslash 
         uav_ns.erase(0, 1); 
 
+        //RCLCPP_INFO_STREAM(this->get_logger(), "================================================"); 
         for (uint32_t i = 0; i < msg->transforms.size(); ++i) {
             // https://www.theconstructsim.com/ros-qa-045-publish-subscribe-array-vector-message/
             geometry_msgs::msg::TransformStamped transform_msg; 
@@ -297,7 +300,7 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
             frame_id        = transform_msg.header.frame_id; 
             child_frame_id  = transform_msg.child_frame_id; 
 
-            // publish pose_gt for this uav
+            // publish pose_gt for this uav 
             if (frame_id == world_name_ && child_frame_id == uav_ns) 
             {   
                 pose_estimate = true; 
@@ -333,9 +336,12 @@ void UavCtl::pose_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 }
 
 void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg){
+
     double vel_x = 0;
     double vel_y = 0;
     double vel_z = 0;
+
+
     if (!firstPoseGtReciv_){
         pos_tNow = getTime(); 
         pos_x_now = msg->pose.position.x; 
@@ -346,18 +352,19 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
         pos_x_last = pos_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
         pos_tLast = pos_tNow; 
         pos_tNow = getTime(); 
+        double dT = pos_tNow - pos_tLast; 
+        if (dT <= 0.05) return; 
         pos_x_now = msg->pose.position.x; 
         pos_y_now = msg->pose.position.y; 
         pos_z_now = msg->pose.position.z; 
-        double dT = pos_tNow - pos_tLast;
-        vel_x = (pos_x_now - pos_x_last) * dT; 
-        vel_y = (pos_y_now - pos_y_last) * dT; 
-        vel_z = (pos_z_now - pos_z_last) * dT; 
+        //double dT = pos_tNow - pos_tLast;
+        vel_x = (pos_x_now - pos_x_last) / dT; 
+        vel_y = (pos_y_now - pos_y_last) / dT; 
+        vel_z = (pos_z_now - pos_z_last) / dT; 
+
     }
 
-    geometry_msgs::msg::Vector3 temp_msg; 
-    temp_msg.x = vel_x; temp_msg.y = vel_y; temp_msg.z = vel_z; 
-    velGtPub_->publish(temp_msg);
+    velGtMsg_.x = vel_x; velGtMsg_.y = vel_y; velGtMsg_.z = vel_z; 
 }
 
 void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
@@ -740,7 +747,10 @@ void UavCtl::timer_callback()
         
         // Publish current state
         std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 
+        std_msgs::msg::Int16 debug_state_msg; debug_state_msg.data = current_state_; 
         currentStatePub_->publish(state_msg); 
+        velGtPub_->publish(velGtMsg_); 
+        stateDebugPub_->publish(debug_state_msg);
 
     } 
 
@@ -936,7 +946,7 @@ void UavCtl::preGraspControl(geometry_msgs::msg::Twist& cmdVel)
     RCLCPP_INFO_STREAM(this->get_logger(), "[PRE_GRASP] in progress, num_contacts:  " << getNumContacts()); 
     // Apply constant pressure on gripper and move it left/right until 
     // on middle of a case
-    cmdVel.linear.z = -5.0; 
+    cmdVel.linear.z = -1.0; 
     if (getNumContacts() > 4){
         contactCounter_++; 
     }else{
@@ -1054,7 +1064,6 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
       RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
       RCLCPP_INFO_STREAM(this->get_logger(), "time_between_two_usv_pos  = " << time_between_two_usv_pos);
       RCLCPP_INFO_STREAM(this->get_logger(), "points = " << dropOffPoint_.point.x << ", " <<  go_to_drop_pos_x_);
-      //RCLCPP_INFO_STREAM(this->get_logger(), "cmd_x_desired  = " << cmd_x_desired);
       RCLCPP_INFO_STREAM(this->get_logger(), "go_to_drop_vel_x_  = " << go_to_drop_vel_x_);
       RCLCPP_INFO_STREAM(this->get_logger(), "--------------------------------------------");
     }
@@ -1064,7 +1073,6 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
 
     double compensation_factor_xy = compensation_factor_start_xy_ - (float)compensation_counter_ / (float)compensation_iterations_ * (compensation_factor_start_xy_ - compensation_factor_end_xy_);
     double compensation_factor_z = compensation_factor_start_z_ - (float)compensation_counter_ / (float)compensation_iterations_ * (compensation_factor_start_z_ - compensation_factor_end_z_);
-    //RCLCPP_INFO_STREAM(this->get_logger(), "compensation factor = " << compensation_factor_xy);
     
     go_to_drop_compensate_x_ += (cmd_x_desired - vel_x_filter_.getValue()) * compensation_factor_xy;
     go_to_drop_compensate_y_ += (cmd_y_desired - vel_y_filter_.getValue()) * compensation_factor_xy;
@@ -1097,15 +1105,6 @@ void UavCtl::goToDropControl(geometry_msgs::msg::Twist& cmdVel)
         filtered_x_vel_pub_->publish(temp_float_msg); 
     }
     
-    /*
-    RCLCPP_INFO_STREAM(this->get_logger(), "measured velocity  = " << go_to_drop_vel_x_ << ", " << go_to_drop_vel_y_ << ", " << go_to_drop_vel_z_ );
-    RCLCPP_INFO_STREAM(this->get_logger(), "velocity commands  = " << cmdVel_.linear.x << ", " << cmdVel_.linear.y << ", " << cmdVel_.linear.z);
-    RCLCPP_INFO_STREAM(this->get_logger(), "compensation  = " << go_to_drop_compensate_x_ << ", " << go_to_drop_compensate_y_ << ", " << go_to_drop_compensate_z_ );
-    RCLCPP_INFO_STREAM(this->get_logger(), "pid output  = " << cmd_x_desired << ", " << cmd_y_desired << ", " << cmd_z_desired );
-    RCLCPP_INFO_STREAM(this->get_logger(), "detected point  = " << dropOffPoint_.point.x << ", " << dropOffPoint_.point.y << ", " << dropOffPoint_.point.z );
-    RCLCPP_INFO_STREAM(this->get_logger(), "-----------------------------" );
-    */
-
     if(std::abs(dropOffPoint_.point.x) < 0.2 && std::abs(dropOffPoint_.point.y < 0.2) && std::abs(dropOffPoint_.point.z) < 4.0 )
     {   
         current_state_ = DROP; 
