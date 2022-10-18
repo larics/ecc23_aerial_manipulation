@@ -9,6 +9,7 @@ ros2 bag record /uav1/pose_gt \
                 /uav1/compensation_z \
                 /uav1/cmd_vel \
                 /uav1/vel_gt \
+                /uav1/state_debug \
                 /uav1/compensation_factor_xy \
                 /uav1/compensation_factor_z \
                 /uav1/arm/drone_detection/detected_point \

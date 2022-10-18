@@ -213,8 +213,8 @@ void UavCtl::init_ctl()
 
     // UAV position control ---> WITH OBJECT
     config.windup_limit = 2.0;
-    config.upper_limit = 0.1; 
-    config.lower_limit = -0.1;  
+    config.upper_limit = 0.5; 
+    config.lower_limit = -0.5;  
     pid.kp = 0.1; pid.ki = 0.0; pid.kd = 0.0; 
     setPidController(x_drop_controller_, pid, config);
     setPidController(y_drop_controller_, pid, config); 
@@ -223,7 +223,7 @@ void UavCtl::init_ctl()
     config.windup_limit = 2.0;
     config.upper_limit = 0.5; 
     config.lower_limit = -0.5;  
-    pid.kp = 0.2; pid.ki = 0.0; pid.kd = 0.0; 
+    pid.kp = 0.5; pid.ki = 0.0; pid.kd = 0.0; 
     setPidController(x_go_to_vessel_controller_, pid, config);
     setPidController(y_go_to_vessel_controller_, pid, config);
     setPidController(z_go_to_vessel_controller_, pid, config);  
@@ -341,6 +341,18 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
     double vel_y = 0;
     double vel_z = 0;
 
+    // Calculate current yaw -> GT
+    tf2::Quaternion q(msg->pose.orientation.x, 
+                      msg->pose.orientation.y, 
+                      msg->pose.orientation.z, 
+                      msg->pose.orientation.w); 
+    
+    tf2::Matrix3x3 m(q);
+
+    //RCLCPP_INFO_STREAM(this->get_logger(), "Current rotational matrix is: " << m); 
+    double roll, pitch, yaw; 
+    m.getRPY(roll, pitch, yaw);   
+
 
     if (!firstPoseGtReciv_){
         pos_tNow = getTime(); 
@@ -349,11 +361,11 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
         pos_z_now = msg->pose.position.z; 
         firstPoseGtReciv_ = true; 
     }else {
-        pos_x_last = pos_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
         pos_tLast = pos_tNow; 
         pos_tNow = getTime(); 
         double dT = pos_tNow - pos_tLast; 
         if (dT <= 0.05) return; 
+        pos_x_last = pos_x_now; pos_y_last = pos_y_now; pos_z_last = pos_z_now; 
         pos_x_now = msg->pose.position.x; 
         pos_y_now = msg->pose.position.y; 
         pos_z_now = msg->pose.position.z; 
@@ -364,7 +376,15 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
 
     }
 
-    velGtMsg_.x = vel_x; velGtMsg_.y = vel_y; velGtMsg_.z = vel_z; 
+    // Get current yaw
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Current yaw is: " << yaw); 
+
+    // Transform from global to local coordinate frame for velocity calculation
+    double local_vel_x, local_vel_y;
+    local_vel_x = vel_x * cos(yaw) - vel_y * sin(yaw);
+    local_vel_y = vel_x * sin(yaw) + vel_y * cos(yaw);
+
+    velGtMsg_.x = local_vel_x; velGtMsg_.y = local_vel_y; velGtMsg_.z = vel_z; 
 }
 
 void UavCtl::magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
@@ -742,15 +762,17 @@ void UavCtl::timer_callback()
 
         if (current_state_ != INIT_STATE)
         {
+            // DEBUG info
             cmdVelPub_->publish(cmdVel_); 
+            velGtPub_->publish(velGtMsg_); 
+            std_msgs::msg::Int16 debug_state_msg; debug_state_msg.data = current_state_; 
+            stateDebugPub_->publish(debug_state_msg);
         }
         
         // Publish current state
         std_msgs::msg::String state_msg; state_msg.data = stateNames[current_state_]; 
-        std_msgs::msg::Int16 debug_state_msg; debug_state_msg.data = current_state_; 
         currentStatePub_->publish(state_msg); 
-        velGtPub_->publish(velGtMsg_); 
-        stateDebugPub_->publish(debug_state_msg);
+
 
     } 
 
@@ -879,7 +901,7 @@ void UavCtl::positionControl(geometry_msgs::msg::Twist& cmdVel)
     // RCLCPP_INFO_STREAM(this->get_logger(), "cmd z: " << z_controller_.get_control_effort());  
     
     cmdVel.linear.x = cmd_x * cos(getCurrentYaw()) + cmd_y * sin(getCurrentYaw());  
-    cmdVel.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()) ; 
+    cmdVel.linear.y = cmd_y * cos(getCurrentYaw()) - cmd_x * sin(getCurrentYaw()); 
     cmdVel.linear.z = cmd_z; 
     cmdVel.angular.x = 0; 
     cmdVel.angular.y = 0; 
