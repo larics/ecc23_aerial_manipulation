@@ -354,6 +354,7 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
     m.getRPY(roll, pitch, yaw);   
 
 
+
     if (!firstPoseGtReciv_){
         pos_tNow = getTime(); 
         pos_x_now = msg->pose.position.x; 
@@ -381,6 +382,7 @@ void UavCtl::pose_gt_callback(const geometry_msgs::msg::PoseStamped::SharedPtr m
 
     // Transform from global to local coordinate frame for velocity calculation
     double local_vel_x, local_vel_y;
+    yaw = yaw - 1.5707; // Add offset due to existing static transform between (global-local)
     local_vel_x = vel_x * cos(yaw) - vel_y * sin(yaw);
     local_vel_y = vel_x * sin(yaw) + vel_y * cos(yaw);
 
