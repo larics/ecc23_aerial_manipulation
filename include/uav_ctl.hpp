@@ -126,6 +126,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr                             currentStatePub_;  
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startFollowingPub_; 
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       velGtPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       dropOffPointPub_; 
         rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr                              stateDebugPub_; 
 
         // subscribers
@@ -242,12 +243,12 @@ class UavCtl: public rclcpp::Node
         bool first_time_entering_go_to_drop_ = true;
 
         uint32_t compensation_counter_ = 0;
-        static constexpr uint32_t compensation_iterations_ = 200;
+        static constexpr uint32_t compensation_iterations_ = 300;
 
         static constexpr double compensation_factor_start_xy_ = 0.1;
-        static constexpr double compensation_factor_end_xy_ = 0.01;
+        static constexpr double compensation_factor_end_xy_ = 0.03;
         static constexpr double compensation_factor_start_z_ = 0.1;
-        static constexpr double compensation_factor_end_z_ = 0.01;
+        static constexpr double compensation_factor_end_z_ = 0.03;
 
         double time_between_two_usv_pos = 0.1;
 
