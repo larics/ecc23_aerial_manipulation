@@ -172,6 +172,11 @@ class UavCtl: public rclcpp::Node
         jlbpid::Controller                                                  z_controller_; 
         jlbpid::Controller                                                  z_go_to_vessel_controller_; 
         jlbpid::Controller                                                  yaw_controller_;  
+        jlbpid::Controller                                                  x_drop_vel_controller_; 
+        jlbpid::Controller                                                  y_drop_vel_controller_; 
+        jlbpid::Controller                                                  z_drop_vel_controller_; 
+
+
         jlbpid::PID                                                         pid; 
         jlbpid::Config                                                      config; 
 
@@ -203,12 +208,14 @@ class UavCtl: public rclcpp::Node
         double                                                              pos_x_last, pos_y_last, pos_z_last; 
         double                                                              tNow, tLast; 
         double                                                              pos_tNow, pos_tLast; 
+        double                                                              uavEstVelX_, uavEstVelY_, uavEstVelZ_; 
 
         geometry_msgs::msg::PoseStamped                                     currPose_; 
         geometry_msgs::msg::Vector3                                         velGtMsg_; 
         geometry_msgs::msg::PoseStamped                                     cmdPose_; 
         geometry_msgs::msg::PointStamped                                    detObjPose_; 
         geometry_msgs::msg::PointStamped                                    dropOffPoint_; 
+        geometry_msgs::msg::PointStamped                                    lastDropoffPoint_; 
         geometry_msgs::msg::PointStamped                                    vesselPoint_; 
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
@@ -246,21 +253,17 @@ class UavCtl: public rclcpp::Node
         static constexpr uint32_t compensation_iterations_ = 300;
 
         static constexpr double compensation_factor_start_xy_ = 0.1;
-        static constexpr double compensation_factor_end_xy_ = 0.03;
+        static constexpr double compensation_factor_end_xy_ = 0.01;
         static constexpr double compensation_factor_start_z_ = 0.1;
-        static constexpr double compensation_factor_end_z_ = 0.03;
+        static constexpr double compensation_factor_end_z_ = 0.01;
 
         double time_between_two_usv_pos = 0.1;
 
 
-        static constexpr bool publish_compensation_debug_info_ = true;
-        rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr    compensation_x_pub_,
-                                                                compensation_y_pub_,
-                                                                compensation_z_pub_,
-                                                                compensation_factor_xy_pub_,
-                                                                compensation_factor_z_pub_,
-                                                                measured_x_vel_pub_,
-                                                                filtered_x_vel_pub_;
+        static constexpr bool publish_compensation_debug_info_ = true;        
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr comp_val_pub; 
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr comp_factor_pub; 
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr comp_est_vel_pub; 
 
 
 
