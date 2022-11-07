@@ -2,11 +2,12 @@
 
 ros2 bag record /uav1/pose_gt \
                 /uav1/pose_ref \
+                /uav1/pos_ref \
                 /uav1/odometry \
                 /uav1/imu/data \
-                /uav1/compensation_val \
-                /uav1/compensation_factor \
-                /uav1/compensation_est_vel \
+                /uav1/comp_val \
+                /uav1/comp_factor \
+                /uav1/comp_est_vel \
                 /uav1/cmd_vel \
                 /uav1/vel_gt \
                 /uav1/drop_off_point \

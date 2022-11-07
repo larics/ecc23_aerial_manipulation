@@ -108,6 +108,7 @@ class UavCtl: public rclcpp::Node
         bool                                                                            use_gt_;
         float                                                                           Kp_h, Kp_x, Kp_y, Kp_yaw; 
         float                                                                           Kd_h, Kd_x, Kd_y, Kd_yaw;
+        float                                                                           inP, inI, inD, inLim, inWindup; 
         bool                                                                            start_on_usv_ = false;
         OnSetParametersCallbackHandle::SharedPtr                                        callback_handle_;
         rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
@@ -127,6 +128,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr                               startFollowingPub_; 
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       velGtPub_; 
         rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       dropOffPointPub_; 
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr                       posRefPub_; 
         rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr                              stateDebugPub_; 
 
         // subscribers
@@ -135,6 +137,7 @@ class UavCtl: public rclcpp::Node
         rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr                           poseSubUsv_; 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    currPoseSub_;
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr                    poseGtSub_; 
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr                          cmdVelRefSub_; 
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                            currOdomSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   detObjSub_;
         rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr                   usvDropPoseSub_; 
@@ -220,7 +223,8 @@ class UavCtl: public rclcpp::Node
         mbzirc_aerial_manipulation_msgs::msg::PoseError                     poseError_; 
         geometry_msgs::msg::Vector3                                         currEuler_; 
         sensor_msgs::msg::Imu                                               currImuData_; 
-        geometry_msgs::msg::Twist                                           cmdVel_;
+        geometry_msgs::msg::Twist                                           cmdVel_, cmdVelDesired_; 
+        geometry_msgs::msg::Vector3                                         posRef_; 
 
         double                                                              lift_open_loop_z_ = 0.0;
         double                                                              lift_open_loop_v_ = 0.0;
@@ -252,10 +256,10 @@ class UavCtl: public rclcpp::Node
         uint32_t compensation_counter_ = 0;
         static constexpr uint32_t compensation_iterations_ = 300;
 
-        static constexpr double compensation_factor_start_xy_ = 0.1;
-        static constexpr double compensation_factor_end_xy_ = 0.01;
-        static constexpr double compensation_factor_start_z_ = 0.1;
-        static constexpr double compensation_factor_end_z_ = 0.01;
+        static constexpr double compensation_factor_start_xy_ = 0.2;
+        static constexpr double compensation_factor_end_xy_ = 0.02;
+        static constexpr double compensation_factor_start_z_ = 0.2;
+        static constexpr double compensation_factor_end_z_ = 0.02;
 
         double time_between_two_usv_pos = 0.1;
 
@@ -346,6 +350,7 @@ class UavCtl: public rclcpp::Node
         void magnetometer_callback(const sensor_msgs::msg::MagneticField::SharedPtr msg); 
         void docking_finished_callback(const std_msgs::msg::Bool::SharedPtr msg); 
         void takeoff_to_height_callback(const std_msgs::msg::Float64 &msg); 
+        void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg); 
 
         // contacts
         void bottom_contact_callback(const std_msgs::msg::Bool::SharedPtr msg); 

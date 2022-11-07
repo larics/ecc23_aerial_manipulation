@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(joy REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -23,6 +24,15 @@ find_package(mbzirc_aerial_manipulation_msgs REQUIRED)
 #mbzirc_msgs
 find_package(mbzirc_msgs REQUIRED)
 
+
+## Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+install(PROGRAMS
+  scripts/monitor_topic.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install C++ files
 add_executable(uav_ctl src/uav_ctl_node.cpp src/uav_ctl.cpp)
 add_executable(uav_joy src/uav_joy_node.cpp src/uav_joy.cpp)
 add_executable(simple_uav_ctl src/simple_uav_ctl_node.cpp src/simple_uav_ctl.cpp)
